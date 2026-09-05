@@ -1,0 +1,9 @@
+{
+  "cols": 180,
+  "rows": 320,
+  "fps": 24,
+  "frameCount": 198,
+  "charset": " ·•●",
+  "hasColors": true,
+  "video": "src/assets/hero-video.mp4"
+}

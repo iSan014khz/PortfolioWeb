@@ -1,0 +1,191 @@
+@import 'tailwindcss';
+
+/* =========================================================================
+   1. FUENTES LOCALES (@font-face)
+   ========================================================================= */
+@font-face {
+  font-family: 'Breton';
+  src: url('../assets/fonts/Breton.woff2') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Machine';
+  src: url('../assets/fonts/Machine.otf') format('opentype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Zirena';
+  src: url('../assets/fonts/Zirena.woff2') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Exposure';
+  src: url('../assets/fonts/ExposureItalicTrial[+20].otf') format('opentype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Latin';
+  src: url('../assets/fonts/latin.woff2') format('woff2');
+  font-display: swap;
+}
+
+/* =========================================================================
+   2. CONFIGURACIÓN GLOBAL DE VISTA
+   ========================================================================= */
+html {
+  scrollbar-width: none;
+  overflow-x: clip;
+  overflow-y: auto;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* =========================================================================
+   3. TOKENS DE DISEÑO (TAILWIND v4 @theme)
+   ========================================================================= */
+@theme {
+  /* ── 3.1. Paleta de Colores Semántica ── */
+  --color-bg: #0d0d0d;
+  --color-bg-secondary: #141414;
+  --color-bg-tertiary: #1c1c1c;
+  --color-surface: #121212;
+  --color-surface-hover: #1a1a1a;
+
+  --color-text: #f0f0f0;
+  --color-text-secondary: #a3a3a3;
+  --color-muted: #8c8c8c;
+  --color-text-inverse: #0d0d0d;
+
+  --color-accent: #1e44ff;
+  --color-accent-hover: #385dff;
+  --color-accent-active: #1435d6;
+  --color-accent-subtle: rgba(30, 68, 255, 0.12);
+
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-border-muted: #262626;
+
+  /* ── 3.2. Tipografía Semántica ── */
+  /* =========================================================================
+     COMBINACIÓN 1: Breton (Display) + Zirena (Body) + Machine (Contrast)
+     ========================================================================= */
+  /* --font-display: 'Breton', serif;
+  --font-body: 'Zirena', serif;
+  --font-contrast: 'Machine', sans-serif; */
+
+  /* =========================================================================
+     COMBINACIÓN 2: Latin (Display & Body) + Exposure (Contrast)
+     ========================================================================= */
+  --font-display: 'Latin', sans-serif;
+  --font-body: 'Latin', sans-serif;
+  --font-contrast: 'Exposure', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
+
+  /* =========================================================================
+     COMBINACIÓN 3: Inter Tight (Editorial Minimalist de Alta Gama)
+     ========================================================================= */
+  /* --font-display: 'Inter Tight', sans-serif;
+  --font-body: 'Inter Tight', sans-serif;
+  --font-contrast: 'Exposure', sans-serif; */
+
+  /* ── Fuentes directas individuales ── */
+  --font-inter-tight: 'Inter Tight', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-breton: 'Breton', serif;
+  --font-machine: 'Machine', sans-serif;
+  --font-zirena: 'Zirena', serif;
+  --font-exposure: 'Exposure', sans-serif;
+  --font-latin: 'Latin', sans-serif;
+
+  /* ── 3.3. Type Ramp (Escala Tipográfica Exacta de Referencia) ── */
+  --text-name: clamp(2.25rem, 2.5rem + 2vw, 4.5rem);
+  --text-hero: clamp(2.5rem, 2rem + 3.8vw, 4.8rem);       /* ~76.9px Display */
+  --text-section: clamp(1.625rem, 1.4rem + 1.2vw, 2rem);  /* ~32px H1 */
+  --text-card: clamp(1.35rem, 1.25rem + 0.5vw, 1.55rem);  /* ~24.8px H3 */
+  --text-subtitle: clamp(1.1rem, 1rem + 0.3vw, 1.18rem);  /* ~18.9px H4 */
+  --text-lead: clamp(1.125rem, 1rem + 0.5vw, 1.625rem);
+  --text-ui: 1rem;                                        /* 16px Links & Buttons */
+  --text-body: 0.89rem;                                   /* 14.25px P / Body */
+  --text-caption: 0.75rem;                                /* 12px Mono labels */
+
+  /* ── 3.4. Tracking & Leading Tokens ── */
+  --tracking-editorial: -0.02em;                          /* -2% letter-spacing */
+  --tracking-editorial-tight: -0.03em;                    /* -3% letter-spacing */
+  --leading-editorial: 1.05;                              /* 1.05 line-height */
+
+  /* ── 3.5. Espaciado y Layout (Ritmo Editorial 64 / 120) ── */
+  --spacing-container-x: clamp(1.25rem, 3.5vw, 3rem);     /* 20px móvil a 48px desktop */
+  --spacing-section-y: clamp(4rem, 6vw, 6rem);             /* 64px a 96px entre secciones */
+  --spacing-inner-complex: clamp(5rem, 7.5vw, 7.5rem);     /* 80px a 120px en componentes complejos */
+  --max-w-content: 44rem;
+  --max-w-page: 85rem;
+
+  /* ── 3.6. Tokens de Movimiento & Físicas (Emil Kowalski + Reference Ease) ── */
+  --ease-snappy: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --duration-press: 140ms;
+  --duration-fast: 160ms;
+  --duration-normal: 220ms;
+  --duration-slow: 350ms;
+
+  /* ── 3.7. Sombras y Relieves ── */
+  --shadow-pill: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px, rgba(10, 37, 64, 0.35) 0px -2px 6px 0px inset, inset 0 0 1px 1px #ffffff14, 0 1px 1.5px #00000052, 0 0 0 .5px var(--color-accent, #1e44ff);
+}
+
+/* =========================================================================
+   4. UTILIDADES
+   ========================================================================= */
+@utility tracking-editorial {
+  letter-spacing: -0.02em;
+}
+
+@utility tracking-editorial-tight {
+  letter-spacing: -0.03em;
+}
+
+@utility leading-editorial {
+  line-height: 1.05;
+}
+
+@utility bg-gradient-accent {
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 85%, white) 0%, color-mix(in srgb, var(--color-accent) 92%, black) 100%);
+}
+
+@utility text-shadow-subtle {
+  text-shadow: 0 1px 1.5px #00000029;
+}
+
+@utility text-shadow-pill {
+  text-shadow: 0 1px 1.5px #00000029;
+}
+
+/* =========================================================================
+   5. BASE STYLES
+   ========================================================================= */
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
