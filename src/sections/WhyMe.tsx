@@ -29,7 +29,7 @@ export default function WhyMe() {
     });
 
     // 3. Revelación de los demás textos: inicia JUSTO cuando ya atravesamos la 'O' por completo
-    const contentOpacity = useTransform(smoothProgress, [0.40, 0.52], [0, 1]);
+    const contentOpacity = useTransform(smoothProgress, [0.4, 0.52], [0, 1]);
     const contentY = useTransform(smoothProgress, [0.40, 0.52], [24, 0]);
     const contentPointerEvents = useTransform(smoothProgress, (v) => (v >= 0.40 ? "auto" : "none"));
 
@@ -62,27 +62,21 @@ export default function WhyMe() {
             className="relative w-full border-b border-muted min-h-[280vh]"
         >
             {/* Contenedor sticky que mantiene la vista fija mientras el usuario recorre la animación */}
-            <div className="sticky top-0 h-screen w-full flex flex-col justify-center items-center overflow-hidden px-5 sm:px-8 md:px-12 py-8 sm:py-12 will-change-transform">
+            <div className="sticky top-0 h-screen w-full flex flex-col justify-center items-center overflow-hidden px-5 sm:px-8 md:px-12 py-8 sm:py-12">
                 {/* Capa de SvgTextZoom para 'Porqué yo?' con super-zoom que atraviesa la letra 'o' */}
-                <div
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none px-5 sm:px-8 md:px-12 z-20 will-change-transform"
-                    style={{
-                        transform: "translateZ(0)",
-                        backfaceVisibility: "hidden"
-                    }}
-                >
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-5 sm:px-8 md:px-12 z-20">
                     <SvgTextZoom
                         text="Porqué yo?"
                         progress={smoothProgress}
-                        zoomScrollRange={[0, 0.38]}
-                        fadeScrollRange={[0.28, 0.40]}
-                        hideThreshold={0.41}
-                        finalWidth={5}
-                        finalHeight={1}
+                        zoomScrollRange={[0, 0.4]}
+                        fadeScrollRange={[0.38, 0.4]}
+                        hideThreshold={0.42}
+                        finalWidth={6.5}
+                        finalHeight={2.4}
                         charFocus="o"
                         charOccurrence="last"
-                        textClassName="font-contrast fill-text text-[95px] tracking-editorial select-none will-change-transform"
-                        className="w-full max-w-4xl will-change-transform"
+                        textClassName="font-contrast fill-text text-[95px] tracking-editorial select-none"
+                        className="w-full max-w-4xl"
                         align="center"
                     />
                 </div>

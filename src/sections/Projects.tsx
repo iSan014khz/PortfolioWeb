@@ -559,7 +559,7 @@ export default function Projects() {
     >
       <div className="flex w-full flex-col gap-6">
         {/* Encabezado Editorial */}
-        <div className="flex items-center justify-between border-b border-muted/20 pb-4">
+        <div className="flex items-center justify-between pb-4">
           <AnimatedTitle animation="ease">Proyectos</AnimatedTitle>
         </div>
 
