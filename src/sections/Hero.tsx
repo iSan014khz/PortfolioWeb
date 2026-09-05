@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useReducedMotion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { AsciiVideo } from '@/components/ui/ascii-video'
 
 const ASCII_START_DELAY_MS = 2800
@@ -19,21 +19,35 @@ export default function Hero() {
       className="relative flex min-h-svh w-full flex-col justify-between overflow-hidden px-5 sm:px-8 md:px-12 py-12 sm:py-16 md:py-20 text-text"
     >
       {playAscii && (
-        <AsciiVideo
-          className="absolute inset-0 h-full w-full"
-          color="var(--color-muted)"
-          backgroundColor="var(--color-bg)"
-          animation="fade"
-          animationDuration={2}
-          interaction="none"
-          loop={!reduced}
-          typeLoop
-          playing={!reduced}
-        />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.8, ease: "easeOut" }}
+          className="absolute inset-0 h-full w-full mask-b-from-45% mask-b-to-100%"
+        >
+          <AsciiVideo
+            className="h-full w-full"
+            color="var(--color-muted)"
+            backgroundColor="var(--color-bg)"
+            animation="none"
+            interaction="none"
+            loop={!reduced}
+            typeLoop
+            playing={!reduced}
+          />
+        </motion.div>
       )}
+
+      {/* Degradado superior para suavizar el inicio de los caracteres */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-(--color-bg) via-(--color-bg) to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-44 sm:h-52 bg-gradient-to-b from-bg via-bg/90 to-transparent z-10"
+      />
+
+      {/* Degradado inferior para fundir el ASCII perfectamente con el fondo */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-48 sm:h-64 bg-gradient-to-t from-bg via-bg/80 to-transparent z-10"
       />
 
       <p className="pointer-events-none relative z-10 max-w-xs font-display text-[15px] font-semibold leading-snug tracking-editorial text-text -mt-2.5">

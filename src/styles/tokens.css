@@ -189,3 +189,12 @@ body {
     scroll-behavior: auto;
   }
 }
+
+@keyframes asciiFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
