@@ -62,34 +62,43 @@ export interface SvgTextZoomProps {
  * La letra objetivo 'O' tiene estrictamente speedX: 0, speedY: 0, scale: 1.0 para mantener
  * su trayectoria perfecta de inmersión.
  */
-const DEFAULT_PARALLAX_PROFILES: Record<number, { speedX: number; speedY: number; scale: number }> = {
-  0: { speedX: -340, speedY: -50, scale: 1.35 }, // P (primer plano izquierdo, vuela rápido hacia afuera)
-  1: { speedX: -210, speedY: 35, scale: 0.85 },  // o (plano de fondo)
-  2: { speedX: -280, speedY: 60, scale: 1.25 },  // r (primer plano)
-  3: { speedX: -150, speedY: -35, scale: 0.8 },   // q (fondo profundo)
-  4: { speedX: -230, speedY: -65, scale: 1.2 },   // u (primer plano medio)
-  5: { speedX: -130, speedY: 45, scale: 0.9 },   // é (plano intermedio)
-  6: { speedX: 0, speedY: 0, scale: 1.0 },        // espacio
-  7: { speedX: -160, speedY: 75, scale: 1.4 },   // y (se abre como cortina hacia abajo-izquierda)
-  8: { speedX: 0, speedY: 0, scale: 1.0 },        // o (LETRA OBJETIVO: FIJA EN SU EJE)
-  9: { speedX: 240, speedY: -55, scale: 1.35 },  // ? (se abre como cortina hacia arriba-derecha)
+const DEFAULT_PARALLAX_PROFILES: Record<number, { speedX: number; speedY: number; scale: number; opacity: number }> = {
+  0: { speedX: -340, speedY: -50, scale: 1.35, opacity: 0.15 }, // P (primer plano: vuela y se disuelve al pasar la lente)
+  1: { speedX: -210, speedY: 35, scale: 0.85, opacity: 0.45 },  // o (fondo: retrocede y se atenúa en la distancia)
+  2: { speedX: -280, speedY: 60, scale: 1.25, opacity: 0.25 },  // r (primer plano: vuela y se disuelve)
+  3: { speedX: -150, speedY: -35, scale: 0.8, opacity: 0.35 },   // q (fondo profundo: se atenúa más)
+  4: { speedX: -230, speedY: -65, scale: 1.2, opacity: 0.3 },    // u (primer plano medio)
+  5: { speedX: -130, speedY: 45, scale: 0.9, opacity: 0.55 },   // é (plano intermedio)
+  6: { speedX: 0, speedY: 0, scale: 1.0, opacity: 1.0 },        // espacio
+  7: { speedX: -160, speedY: 75, scale: 1.4, opacity: 0.1 },    // y (cortina primer plano: se abre y disuelve)
+  8: { speedX: 0, speedY: 0, scale: 1.0, opacity: 1.0 },        // o (LETRA OBJETIVO: 100% OPACA Y FIJA)
+  9: { speedX: 240, speedY: -55, scale: 1.35, opacity: 0.15 },  // ? (cortina primer plano: se abre y disuelve)
 }
 
 function getCharParallax(index: number, focusIndex: number) {
   if (index === focusIndex) {
-    return { speedX: 0, speedY: 0, scale: 1.0 }
+    return { speedX: 0, speedY: 0, scale: 1.0, targetOpacity: 1.0 }
   }
   if (DEFAULT_PARALLAX_PROFILES[index]) {
-    return DEFAULT_PARALLAX_PROFILES[index]
+    const p = DEFAULT_PARALLAX_PROFILES[index]
+    return {
+      speedX: p.speedX,
+      speedY: p.speedY,
+      scale: p.scale,
+      targetOpacity: p.opacity,
+    }
   }
   const diff = index - focusIndex
   const dir = diff < 0 ? -1 : 1
   const absDist = Math.abs(diff)
   const isForeground = index % 2 === 0
+  const scale = isForeground ? 1.0 + absDist * 0.04 : Math.max(0.75, 1.0 - absDist * 0.03)
+  const targetOpacity = scale > 1.0 ? Math.max(0.1, 1.0 - (scale - 1.0) * 2.2) : Math.max(0.3, scale * 0.6)
   return {
     speedX: dir * (90 + absDist * 35),
     speedY: (index % 3 === 0 ? -1 : 1) * (25 + absDist * 10),
-    scale: isForeground ? 1.0 + absDist * 0.04 : Math.max(0.75, 1.0 - absDist * 0.03),
+    scale,
+    targetOpacity,
   }
 }
 
@@ -101,6 +110,7 @@ interface ParallaxCharItemProps {
   speedX: number
   speedY: number
   targetScale: number
+  targetOpacity: number
   progress: MotionValue<number>
   zoomScrollRange: [number, number]
   className?: string
@@ -115,15 +125,17 @@ const ParallaxCharItem: React.FC<ParallaxCharItemProps> = ({
   speedX,
   speedY,
   targetScale,
+  targetOpacity,
   progress,
   zoomScrollRange,
   className,
   variants,
 }) => {
-  // Para la letra objetivo 'O' (isFocus), no hay movimiento de parallax: permanece 100% fija en su trayectoria
+  // Para la letra objetivo 'O' (isFocus), no hay movimiento de parallax: permanece 100% fija y 100% opaca
   const offsetX = useTransform(progress, zoomScrollRange, [0, isFocus ? 0 : speedX])
   const offsetY = useTransform(progress, zoomScrollRange, [0, isFocus ? 0 : speedY])
   const scale = useTransform(progress, zoomScrollRange, [1, isFocus ? 1 : targetScale])
+  const charOpacity = useTransform(progress, zoomScrollRange, [1, isFocus ? 1 : targetOpacity])
 
   if (char === " " || char === "\u00A0") return null
 
@@ -133,6 +145,7 @@ const ParallaxCharItem: React.FC<ParallaxCharItemProps> = ({
         x: offsetX,
         y: offsetY,
         scale: scale,
+        opacity: charOpacity,
         transformOrigin: `${x}px ${y}px`,
       }}
     >
@@ -180,6 +193,7 @@ interface MeasuredChar {
   speedX: number
   speedY: number
   scale: number
+  targetOpacity: number
 }
 
 /**
@@ -293,6 +307,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
               speedX: parallax.speedX * parallaxIntensity,
               speedY: parallax.speedY * parallaxIntensity,
               scale: parallax.scale,
+              targetOpacity: parallax.targetOpacity,
             })
           }
 
@@ -414,6 +429,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
                 speedX={item.speedX}
                 speedY={item.speedY}
                 targetScale={item.scale}
+                targetOpacity={item.targetOpacity}
                 progress={progress}
                 zoomScrollRange={zoomScrollRange}
                 className={textClassName}
