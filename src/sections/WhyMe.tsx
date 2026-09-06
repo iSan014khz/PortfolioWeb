@@ -1,4 +1,4 @@
-import { motion, useScroll, useTransform, useSpring } from 'motion/react';
+import { motion, useScroll, useTransform, useSpring, type MotionValue } from 'motion/react';
 import { useRef, useMemo } from 'react';
 import { interpolate } from 'flubber';
 import yoImg from '@/assets/yo.jpg';
@@ -9,6 +9,54 @@ const MEXICO_MAP_PATH = "M 640.2,435 L 628.9,460.5 L 623.9,481.3 L 621.7,520.2 L
 
 // Path del cuadrado final con esquinas suavemente redondeadas
 const SQUARE_PATH = "M 60,40 L 940,40 Q 960,40 960,60 L 960,940 Q 960,960 940,960 L 60,960 Q 40,960 40,940 L 40,60 Q 40,40 60,40 Z";
+
+// Salida progresiva sin rebote: el elemento cubre casi todo su recorrido pronto y llega a su
+// posición sin frenazo. Es lo que hace que un revelado por scroll se sienta asentado y no mecánico.
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+/**
+ * Revelado de un elemento del contenido, atado al progreso de scroll.
+ *
+ * El contenido vive dentro del contenedor sticky, así que siempre está técnicamente en pantalla:
+ * un `whileInView` se dispararía de golpe al entrar la sección. Por eso cada elemento se revela
+ * en su propio tramo de scroll, y el escalonado nace de solapar esos tramos.
+ *
+ * El desenfoque de entrada no es decorativo: la sección entera está construida sobre la metáfora
+ * de una lente, así que al salir de la 'O' las cosas entran enfocándose. La cantidad baja con la
+ * jerarquía, de modo que el titular es lo que más nítido llega y el cuerpo lo que menos viaja.
+ */
+function useRevealOnScroll(
+    progress: MotionValue<number>,
+    range: [number, number],
+    options: { y: number; blur: number; scale?: number; drift?: number }
+) {
+    const { y, blur, scale = 1, drift = 0 } = options;
+    const easing = { ease: easeOutCubic };
+
+    const opacity = useTransform(progress, range, [0, 1], easing);
+    const scaleValue = useTransform(progress, range, [scale, 1], easing);
+
+    // Deriva de parallax: una vez posado, el elemento sigue ascendiendo hasta el final de la
+    // sección. Va SIN suavizado, a diferencia del revelado: un parallax se lee como tal justo
+    // porque avanza a ritmo constante con el scroll; con una curva encima parecería otra
+    // animación de entrada en lugar de profundidad.
+    const revealY = useTransform(progress, range, [y, 0], easing);
+    const driftY = useTransform(progress, [range[1], 1], [0, -drift]);
+    const translateY = useTransform(
+        [revealY, driftY],
+        ([reveal, parallax]) => Number(reveal) + Number(parallax)
+    );
+    const filter = useTransform(progress, (v) => {
+        const span = range[1] - range[0];
+        const t = clamp01(span === 0 ? 1 : (v - range[0]) / span);
+        const px = blur * (1 - easeOutCubic(t));
+        return px < 0.1 ? "none" : `blur(${px.toFixed(2)}px)`;
+    });
+
+    return { opacity, y: translateY, scale: scaleValue, filter };
+}
 
 export default function WhyMe() {
     const sectionRef = useRef<HTMLElement>(null);
@@ -28,13 +76,21 @@ export default function WhyMe() {
         restDelta: 0.001
     });
 
-    // 3. Revelación de los demás textos: inicia JUSTO cuando ya atravesamos la 'O' por completo
-    const contentOpacity = useTransform(smoothProgress, [0.4, 0.52], [0, 1]);
-    const contentY = useTransform(smoothProgress, [0.40, 0.52], [24, 0]);
-    const contentPointerEvents = useTransform(smoothProgress, (v) => (v >= 0.40 ? "auto" : "none"));
+    // 3. Revelación escalonada por jerarquía. Los tramos se SOLAPAN a propósito: si fueran
+    // consecutivos se leerían como tres eventos sueltos, mientras que encadenados producen una
+    // sola cascada. Cada nivel viaja menos y se desenfoca menos que el anterior, de modo que el
+    // orden de lectura queda marcado por la intensidad del movimiento y no sólo por el retardo.
+    // `drift` es el ascenso de parallax posterior. Decrece hacia abajo para que el bloque se
+    // abra en lugar de comprimirse: el titular sube más que la foto y la foto más que el cuerpo,
+    // así que las separaciones se ensanchan unos pocos píxeles y nada se acerca a colisionar.
+    const headlineReveal = useRevealOnScroll(smoothProgress, [0.34, 0.415], { y: 34, blur: 8, drift: 78 });
+    const photoReveal = useRevealOnScroll(smoothProgress, [0.378, 0.453], { y: 26, blur: 6, scale: 0.965, drift: 64 });
+    const bodyReveal = useRevealOnScroll(smoothProgress, [0.416, 0.491], { y: 18, blur: 4, drift: 52 });
+
+    const contentPointerEvents = useTransform(smoothProgress, (v) => (v >= 0.42 ? "auto" : "none"));
 
     // 4. Mapeo del progreso para la animación de morphing de México hacia el cuadrado
-    const rawMorphProgress = useTransform(smoothProgress, [0.54, 0.88], [0, 1]);
+    const rawMorphProgress = useTransform(smoothProgress, [0.50, 0.88], [0, 1]);
 
     // Interpolador de morphing continuo entre la silueta de México y el cuadrado
     const interpolator = useMemo(() => {
@@ -59,7 +115,7 @@ export default function WhyMe() {
         <section
             ref={sectionRef}
             id="why-me"
-            className="relative w-full border-b border-muted min-h-[280vh]"
+            className="relative w-full border-b border-muted min-h-[380vh]"
         >
             {/* Contenedor sticky que mantiene la vista fija mientras el usuario recorre la animación */}
             <div className="sticky top-0 h-screen w-full flex flex-col justify-center items-center overflow-hidden px-5 sm:px-8 md:px-12 py-8 sm:py-12">
@@ -69,10 +125,12 @@ export default function WhyMe() {
                         text="Porqué yo?"
                         progress={smoothProgress}
                         zoomScrollRange={[0, 0.4]}
-                        fadeScrollRange={[0.38, 0.4]}
-                        hideThreshold={0.42}
+                        fadeScrollRange={[0.30, 0.4]}
+                        hideThreshold={0.46}
                         finalWidth={6.5}
                         finalHeight={2.4}
+                        maxBlur={7}
+                        exitBlur={18}
                         charFocus="o"
                         charOccurrence="last"
                         textClassName="font-contrast fill-text text-[95px] tracking-editorial select-none"
@@ -84,23 +142,29 @@ export default function WhyMe() {
                 {/* Contenedor con los demás elementos de la sección que aparecen tras el zoom */}
                 <motion.div
                     style={{
-                        opacity: contentOpacity,
-                        y: contentY,
                         pointerEvents: contentPointerEvents
                     }}
                     className="relative z-10 flex flex-col gap-6 sm:gap-8 w-full max-w-xl mx-auto items-start justify-center will-change-transform"
                 >
-                    <p className="font-body text-subtitle text-text leading-snug tracking-editorial">
+                    <motion.p
+                        style={headlineReveal}
+                        className="font-body text-subtitle text-text leading-snug tracking-editorial"
+                    >
                         Nacido en México. <br />
                         <strong className="font-body font-extrabold">criado en el código.</strong>
-                    </p>
+                    </motion.p>
 
                     {/* Contenedor de la foto con morphing SVG puro en todos los ángulos */}
-                    <div
+                    <motion.div
                         ref={imageContainerRef}
                         className="relative w-full max-w-md mx-auto aspect-square my-2 sm:my-4 select-none will-change-transform"
                         style={{
-                            transform: "translateZ(0)",
+                            ...photoReveal,
+                            // `translateZ` como valor de motion y no como cadena en `transform`:
+                            // ahora que el contenedor anima `y` y `scale`, motion compone el
+                            // transform y una cadena literal quedaría sobreescrita, perdiendo la
+                            // promoción a capa GPU que buscaba el translateZ(0) original.
+                            translateZ: 0,
                             backfaceVisibility: "hidden"
                         }}
                     >
@@ -143,12 +207,14 @@ export default function WhyMe() {
                                 />
                             </g>
                         </svg>
-                    </div>
+                    </motion.div>
 
-                    <p className="text-text text-body sm:text-base leading-relaxed max-w-xl font-body">
+                    <motion.p
+                        style={bodyReveal}
+                        className="text-text text-body sm:text-base leading-relaxed max-w-xl font-body">
                         Soy <strong className="text-text font-body font-semibold">Santiago Palma</strong>, estudiante de ingeniería de software.
                         Combino la ingeniería con el cuidado obsesivo por el diseño para crear experiencias donde la velocidad, la estética y la interacción dejan un recuerdo.
-                    </p>
+                    </motion.p>
                 </motion.div>
             </div>
         </section>
