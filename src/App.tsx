@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { lazy, Suspense, type CSSProperties } from 'react'
 import Nav from '@/components/Nav'
 import SmoothScroll from '@/components/smooth-scroll'
 // import Transition from '@/components/transiton'
@@ -7,11 +7,14 @@ import About from '@/sections/Copy'
 import Footer from '@/sections/Footer'
 import Hero from '@/sections/Hero'
 // import Philosophy from '@/sections/Philosophy'
-import Projects from '@/sections/Projects'
+import Projects from '@/components/projects/ProjectsEditorial'
 import Skills from '@/sections/Skills'
 import WhyMe from '@/sections/WhyMe'
 
 const SHOW_GRID = false // activa mientras maquetas, apaga antes de commitear
+const CaseTypographyPreview = import.meta.env.DEV
+  ? lazy(() => import('@/prototypes/case-typography/CaseTypographyPreview'))
+  : null
 
 function GridOverlay() {
   return (
@@ -36,6 +39,9 @@ function GridOverlay() {
 }
 
 export default function App() {
+  if (CaseTypographyPreview && new URLSearchParams(location.search).has('case-preview')) {
+    return <Suspense fallback={null}><CaseTypographyPreview /></Suspense>
+  }
   return (
     <SmoothScroll>
       <div className="relative min-h-svh w-full bg-bg text-text">

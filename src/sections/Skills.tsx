@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform, use
 import { skillCategories, type SkillCategory } from '../data/skills'
 import AnimatedTitle from '@/components/AnimatedTitle'
 import TechBadge from '@/components/TechBadge'
+import { Container, Section } from '@/components/Section'
 
 const panelVariants: Variants = {
     hidden: {
@@ -100,37 +101,43 @@ function AccordionItem({
             className="group/item relative w-full will-change-transform"
         >
             {/* Botón Cabecera del Acordeón con Tokens Clamp Fluidos y respuesta táctil instantánea */}
+            <h3>
             <motion.button
                 type="button"
+                id={`skill-trigger-${category.id}`}
+                aria-expanded={isOpen}
+                aria-controls={`skill-panel-${category.id}`}
                 onClick={onToggle}
-                whileTap={{ scale: 0.995 }}
+                whileTap={reduced ? undefined : { scale: 0.995 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                className="flex w-full cursor-pointer items-center justify-between py-[clamp(14px,1.8vw,22px)] text-left select-none transition-colors duration-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+                className="flex min-h-11 w-full cursor-pointer items-center justify-between py-4 sm:py-5 text-left select-none transition-colors duration-200 rounded-sm"
             >
                 {/* Título Fluido de Gran Formato: clamp(34px, 4.5vw, 64px) con tracking editorial */}
-                <h3 className={`font-body text-[clamp(34px,4.5vw,64px)] font-medium leading-[1.08] tracking-[-0.015em] transition-colors duration-300 ${isOpen ? 'text-text' : 'text-text/90 group-hover/item:text-accent'
+                <span className={`font-body text-item-title md:text-accordion-lg font-medium leading-[1.12] tracking-editorial transition-colors duration-200 ${isOpen ? 'text-text' : 'text-text/90 group-hover/item:text-link'
                     }`}>
                     {category.title}
-                </h3>
+                </span>
 
                 {/* Cruz geométrica minimalista (.service-plus) */}
-                <div className="relative size-[clamp(16px,1.2vw,18px)] ml-4 shrink-0 self-center text-muted transition-colors duration-300 group-hover/item:text-text">
+                <div aria-hidden="true" className="relative size-accordion-icon ml-4 md:ml-8 shrink-0 self-center text-muted transition-colors duration-200 group-hover/item:text-text">
                     {/* Línea horizontal */}
                     <span className="absolute left-0 top-1/2 h-[1px] w-full -translate-y-1/2 bg-current" />
                     {/* Línea vertical que rota -90deg al abrirse */}
                     <motion.span
                         animate={{ rotate: isOpen ? -90 : 0 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                        transition={reduced ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 25 }}
                         className="absolute left-1/2 top-0 h-full w-[1px] -translate-x-1/2 bg-current origin-center"
                     />
                 </div>
             </motion.button>
+            </h3>
 
             {/* Contenido Expandible con Badges Tecnológicas Oficiales e Interactivas */}
+            <div id={`skill-panel-${category.id}`} role="region" aria-labelledby={`skill-trigger-${category.id}`} aria-hidden={!isOpen} inert={!isOpen}>
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        variants={panelVariants}
+                        variants={reduced ? undefined : panelVariants}
                         initial="hidden"
                         animate="visible"
                         exit="exit"
@@ -144,7 +151,6 @@ function AccordionItem({
                                 >
                                     <TechBadge
                                         tech={skill}
-                                        className="px-3 py-1.5 text-xs sm:text-sm"
                                     />
                                 </motion.div>
                             ))}
@@ -152,6 +158,7 @@ function AccordionItem({
                     </motion.div>
                 )}
             </AnimatePresence>
+            </div>
         </motion.div>
     )
 }
@@ -166,17 +173,17 @@ export default function Skills() {
     }
 
     return (
-        <section
+        <Section
             id="skills"
-            className="flex min-h-svh w-full flex-col items-center justify-start overflow-x-clip px-5 sm:px-8 md:px-12 py-16 sm:py-20 md:py-24"
+            className="flex flex-col items-center justify-start overflow-x-clip"
         >
-            <div className="flex w-full flex-col gap-8 sm:gap-10">
+            <Container className="flex flex-col gap-8 sm:gap-10">
                 <AnimatedTitle animation="spring">
                     Habilidades
                 </AnimatedTitle>
 
                 {/* Lista de acordeones con respiro y separación entre secciones */}
-                <div className="group/list flex w-full flex-col gap-y-4 sm:gap-y-6 md:gap-y-8">
+                <div className="group/list flex w-full flex-col divide-y divide-rule-subtle">
                     {skillCategories.map((category) => (
                         <AccordionItem
                             key={category.id}
@@ -187,7 +194,7 @@ export default function Skills() {
                         />
                     ))}
                 </div>
-            </div>
-        </section>
+            </Container>
+        </Section>
     )
 }

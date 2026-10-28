@@ -372,9 +372,9 @@ export default function ProjectsTimeline() {
             {/* Header del modal */}
             <header className="space-y-4 pr-10 sm:pr-12">
               <div className="space-y-1.5">
-                <h1 className="font-body text-3xl sm:text-4xl font-semibold tracking-tight text-text text-pretty">
+                <h2 className="font-body text-3xl sm:text-4xl font-semibold tracking-tight text-text text-pretty">
                   {selectedProject.name}
-                </h1>
+                </h2>
 
                 <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-muted font-body">
                   <span>Frontend & Diseño</span>

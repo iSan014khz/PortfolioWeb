@@ -4,6 +4,7 @@ import { projects, type Project } from '../data/projects'
 import AnimatedTitle from '@/components/AnimatedTitle'
 import TechBadge from '@/components/TechBadge'
 import { Modal } from '@/components/ui/modal'
+import { Container, Section } from '@/components/Section'
 
 interface EditorialTreeProps {
   projects: Project[]
@@ -12,68 +13,34 @@ interface EditorialTreeProps {
 
 const TRUNK_END_SCROLL = 0.86 // El tronco vertical finaliza en la última curva al 86% del scroll
 
-/* function _BranchCurveItem({
-  pathData,
-  smoothProgress,
-  touchProgress,
-  duration = 0.08,
-}: {
-  pathData: string
-  smoothProgress: MotionValue<number>
-  touchProgress: number
-  duration?: number
-}) {
-  const branchPathLength = useTransform(smoothProgress, (t: number) => {
-    if (t <= touchProgress) return 0
-    if (t >= touchProgress + duration) return 1
-    return (t - touchProgress) / duration
-  })
-  const branchOpacity = useTransform(smoothProgress, (t: number) => (t > touchProgress ? 1 : 0))
-
-  return (
-    <g>
-      <motion.path
-        d={pathData}
-        stroke="var(--color-accent, #c8ff00)"
-        strokeWidth="1"
-        strokeLinecap="round"
-        style={{
-          pathLength: branchPathLength,
-          opacity: branchOpacity,
-        }}
-      />
-    </g>
-  )
-} */
-
 function EditorialTreeSection({ projects, onOpen }: EditorialTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const nodeRefs = useRef<(HTMLDivElement | null)[]>([])
-  const actionRefs = useRef<(HTMLDivElement | null)[]>([])
-  const [positions, setPositions] = useState<{ nodeY: number; actionY: number }[]>([
-    { nodeY: 4, actionY: 160 },
-    { nodeY: 220, actionY: 380 },
-    { nodeY: 440, actionY: 600 },
-  ])
+  const [positions, setPositions] = useState<number[]>([4, 220, 440])
+  // El tronco termina en el borde inferior del ultimo proyecto. Antes se anclaba a un div
+  // vacio colocado bajo cada uno solo para medir, que ademas metia 24px de espacio muerto.
+  const [trunkEndY, setTrunkEndY] = useState(600)
   const [containerHeight, setContainerHeight] = useState(0)
 
-  // Medición dinámica ultra-precisa de las posiciones relativas de cada nodo y botón
+  // Medición dinámica de la posición vertical de cada nodo y del cierre del contenido
   useEffect(() => {
     if (!containerRef.current) return
     const updatePositions = () => {
-      if (!containerRef.current) return
-      const cRect = containerRef.current.getBoundingClientRect()
+      const container = containerRef.current
+      if (!container) return
+      const cRect = container.getBoundingClientRect()
       setContainerHeight(cRect.height)
-      const pts = projects.map((_, i) => {
-        const nodeEl = nodeRefs.current[i]
-        const actionEl = actionRefs.current[i]
-        const nodeY = nodeEl ? nodeEl.getBoundingClientRect().top - cRect.top + 4 : i * 220 + 4
-        const actionY = actionEl
-          ? actionEl.getBoundingClientRect().top - cRect.top + 10
-          : i * 220 + 160
-        return { nodeY, actionY }
-      })
-      setPositions(pts)
+      setPositions(
+        projects.map((_, i) => {
+          const nodeEl = nodeRefs.current[i]
+          return nodeEl ? nodeEl.getBoundingClientRect().top - cRect.top + 4 : i * 220 + 4
+        })
+      )
+      const articles = container.querySelectorAll('article')
+      const lastArticle = articles[articles.length - 1]
+      if (lastArticle) {
+        setTrunkEndY(lastArticle.getBoundingClientRect().bottom - cRect.top)
+      }
     }
 
     updatePositions()
@@ -103,16 +70,9 @@ function EditorialTreeSection({ projects, onOpen }: EditorialTreeProps) {
     restDelta: 0.001,
   })
 
-  // Constantes geométricas del árbol
-  const curveRadius = 14
-  const horizontalEndX = 18
-
   // Tronco vertical único continuo: remata centrado como una "T" invertida (⊥)
-  const firstNodeY = positions[0]?.nodeY ?? 4
-  const lastIndex = positions.length - 1
-  const lastPos = positions[lastIndex]
-  // Altura final vertical de la línea: restar 24 hace que termine de forma precisa al cierre del contenido
-  const lastCurveStartY = Math.max(lastPos?.nodeY ?? 4, (lastPos?.actionY ?? 700) - 24)
+  const firstNodeY = positions[0] ?? 4
+  const lastCurveStartY = Math.max(positions[positions.length - 1] ?? 4, trunkEndY)
   const totalTrunkDistance = Math.max(1, lastCurveStartY - firstNodeY)
 
   const trunkPath = `M 4,${firstNodeY} L 4,${lastCurveStartY}`
@@ -135,26 +95,16 @@ function EditorialTreeSection({ projects, onOpen }: EditorialTreeProps) {
     (t: number) => (t >= crossbarStartScroll ? 1 : 0)
   )
 
-  // Cálculos matemáticos exactos del instante en que la punta de la línea toca cada curva y nodo
-  const curveData = positions.map((p) => {
-    const curveStartY = Math.max(p.nodeY, p.actionY - curveRadius)
-    const touchProgress = Math.max(
+  // Instante exacto en que la punta de la línea alcanza cada nodo, que es lo que dispara su pulso
+  const nodeTouchProgress = positions.map((nodeY) =>
+    Math.max(
       0,
-      Math.min(TRUNK_END_SCROLL, ((curveStartY - firstNodeY) / totalTrunkDistance) * TRUNK_END_SCROLL)
+      Math.min(TRUNK_END_SCROLL, ((nodeY - firstNodeY) / totalTrunkDistance) * TRUNK_END_SCROLL)
     )
-    const nodeTouchProgress = Math.max(
-      0,
-      Math.min(TRUNK_END_SCROLL, ((p.nodeY - firstNodeY) / totalTrunkDistance) * TRUNK_END_SCROLL)
-    )
-    const path =
-      horizontalEndX > 4 + curveRadius
-        ? `M 4,${curveStartY} Q 4,${p.actionY} ${4 + curveRadius},${p.actionY} L ${horizontalEndX},${p.actionY}`
-        : `M 4,${curveStartY} Q 4,${p.actionY} ${horizontalEndX},${p.actionY}`
-    return { path, touchProgress, nodeTouchProgress }
-  })
+  )
 
   return (
-    <div ref={containerRef} className="relative mx-auto w-full max-w-3xl py-6">
+    <div ref={containerRef} className="relative w-full py-6">
       {/* ========================================================= */}
       {/* SVG MAESTRO ÚNICO: Tronco continuo vertical + Remate en "T" invertida */}
       {/* ========================================================= */}
@@ -199,22 +149,15 @@ function EditorialTreeSection({ projects, onOpen }: EditorialTreeProps) {
           }}
         />
 
-        {/* 3. Ramas curvas: Nacen con precisión matemática solo cuando la línea vertical las toca */}
-        {/* {curveData.map((data, i) => (
-          <BranchCurveItem
-            key={`curve-${i}`}
-            pathData={data.path}
-            smoothProgress={smoothProgress}
-            touchProgress={data.touchProgress}
-            duration={0.08}
-          />
-        ))} */}
       </svg>
 
       {/* Lista de Proyectos con animaciones fluidas con useScroll (Motion) */}
-      <div className="space-y-14 sm:space-y-16">
+      {/* El div ancla que se elimino aportaba 24px en TODOS los breakpoints, asi que estos
+          valores lo reponen por debajo de 768px y solo aprietan de tablet hacia arriba:
+          80px movil / 88px sm (identicos a antes) y 64px en PC. */}
+      <div className="space-y-20 sm:space-y-[5.5rem] md:space-y-16">
         {projects.map((project, index) => {
-          const nodeTouch = curveData[index]?.nodeTouchProgress ?? 0
+          const nodeTouch = nodeTouchProgress[index] ?? 0
 
           return (
             <ProjectItem
@@ -226,9 +169,6 @@ function EditorialTreeSection({ projects, onOpen }: EditorialTreeProps) {
               onOpen={onOpen}
               setNodeRef={(el) => {
                 nodeRefs.current[index] = el
-              }}
-              setActionRef={(el) => {
-                actionRefs.current[index] = el
               }}
             />
           )
@@ -245,7 +185,6 @@ interface ProjectItemProps {
   smoothProgress: MotionValue<number>
   onOpen: (p: Project) => void
   setNodeRef: (el: HTMLDivElement | null) => void
-  setActionRef: (el: HTMLDivElement | null) => void
 }
 
 function ProjectBadgeItem({
@@ -302,7 +241,6 @@ function ProjectItem({
   smoothProgress,
   onOpen,
   setNodeRef,
-  setActionRef,
 }: ProjectItemProps) {
   const itemRef = useRef<HTMLElement>(null)
   const shouldReduceMotion = useReducedMotion() ?? false
@@ -392,9 +330,14 @@ function ProjectItem({
           </div>
         </div>
 
-        {/* Columna 2: Título monumental (Se abre exclusivamente al tocar el título) */}
-        <div className="pl-5 sm:pl-0">
-          <motion.div
+        {/* Columna 2: Título monumental (Se abre exclusivamente al tocar el título).
+            El nodo es un hermano flex de 8px, asi que empuja el titulo 8px mas a la derecha que
+            la descripcion. En PC se descuentan (8 + 12 = 20px) para que ambos compartan borde;
+            por debajo de 768px se deja el desfase original, que ya venia de antes. */}
+        <div className="pl-5 md:pl-3">
+          <h3>
+          <motion.button
+            type="button"
             style={{
               opacity: titleOpacity,
               y: titleY,
@@ -402,31 +345,31 @@ function ProjectItem({
               filter: titleFilter,
               willChange: 'transform, opacity, filter',
             }}
-            role="button"
-            tabIndex={0}
             aria-label={`Abrir detalles del proyecto ${project.name}`}
             onClick={() => onOpen(project)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                onOpen(project)
-              }
-            }}
-            whileHover={{ x: 4 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={shouldReduceMotion ? undefined : { x: 4 }}
+            whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 420, damping: 25 }}
-            className="group/title inline-block cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+            className="group/title inline-flex flex-wrap items-center gap-x-4 gap-y-2 cursor-pointer rounded-sm text-left"
           >
-            <h3 className="font-body text-[clamp(26px,3.5vw,48px)] font-medium leading-[1.1] tracking-editorial text-text transition-colors duration-200 group-hover/title:text-accent">
+            <span className="font-body text-item-title text-text transition-colors duration-200 group-hover/title:text-link">
               {project.name}
-            </h3>
-          </motion.div>
+            </span>
+            <span aria-hidden="true" className="inline-flex items-center gap-1.5 font-body text-caption font-normal text-text-secondary transition-colors group-hover/title:text-link">
+              Ver proyecto
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>
+            </span>
+          </motion.button>
+          </h3>
         </div>
       </div>
 
-      {/* Contenido alineado con la columna del título */}
-      <div className="relative pl-5 sm:pl-[80px] md:pl-[110px] pt-2">
-        {/* Frase síntesis de impacto editorial (Se abre exclusivamente al tocar la descripción) */}
+      {/* Contenido alineado con la columna del título. La sangria es la misma en todos los
+          tamanos: en movil titulo y descripcion ya compartian borde y ahi la relacion funciona.
+          En escritorio se habia ido a 110px, dejando un canal vacio de 102px entre el titulo y
+          su propia descripcion, y rompiendo la unica columna que comparte el resto de la pagina. */}
+      <div className="relative pl-5 pt-2">
+        {/* Descripción de lectura; la acción de detalle vive en el título. */}
         <motion.p
           style={{
             opacity: subtitleOpacity,
@@ -435,20 +378,7 @@ function ProjectItem({
             filter: subtitleFilter,
             willChange: 'transform, opacity, filter',
           }}
-          role="button"
-          tabIndex={0}
-          aria-label={`Abrir detalles del proyecto ${project.name}`}
-          onClick={() => onOpen(project)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              onOpen(project)
-            }
-          }}
-          whileHover={{ x: 2 }}
-          whileTap={{ scale: 0.99 }}
-          transition={{ type: 'spring', stiffness: 420, damping: 25 }}
-          className="max-w-2xl font-body text-base sm:text-lg leading-relaxed text-muted/85 font-normal text-pretty cursor-pointer transition-colors duration-200 hover:text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
+          className="max-w-reading font-body text-body text-text-secondary font-normal text-pretty"
         >
           {project.subtitle}
         </motion.p>
@@ -472,12 +402,6 @@ function ProjectItem({
             />
           ))}
         </motion.div>
-
-        {/* Anclaje para cálculo vertical de altura de la sección */}
-        <div
-          ref={setActionRef}
-          className="mt-6 flex items-center gap-2 font-body text-sm sm:text-base text-muted"
-        />
       </div>
     </motion.article>
   )
@@ -553,11 +477,11 @@ export default function Projects() {
   }
 
   return (
-    <section
+    <Section
       id="projects"
-      className="flex min-h-svh w-full flex-col items-center justify-start px-5 sm:px-8 md:px-12 py-16 sm:py-20 md:py-24"
+      className="flex flex-col items-center justify-start"
     >
-      <div className="flex w-full flex-col gap-6">
+      <Container className="flex flex-col gap-6">
         {/* Encabezado Editorial */}
         <div className="flex items-center justify-between pb-4">
           <AnimatedTitle animation="ease">Proyectos</AnimatedTitle>
@@ -568,24 +492,25 @@ export default function Projects() {
           projects={projects}
           onOpen={handleOpenProject}
         />
-      </div>
+      </Container>
 
       {/* Modal coherente con la tipografía y patrones del portafolio */}
       <Modal
         open={selectedProject !== null}
         onClose={() => setSelectedProject(null)}
         title={null}
+        ariaLabel={selectedProject ? `Proyecto ${selectedProject.name}` : undefined}
         headerImage={selectedProject?.imageUrl}
         maxWidth={760}
       >
         {selectedProject && (
-          <div className="mx-auto w-full max-w-[700px] space-y-10 py-2 pb-10 sm:pb-14 font-body text-text">
+          <div className="mx-auto w-full max-w-reading space-y-10 py-2 pb-10 sm:pb-14 font-body text-body text-text">
             {/* 1. Header (Limpio, directo y con margen seguro para botón de cierre) */}
             <header className="space-y-4 pr-10 sm:pr-12">
               <div className="space-y-1.5">
-                <h1 className="font-body text-3xl sm:text-4xl font-semibold tracking-tight text-text text-pretty">
+                <h2 className="font-body text-item-title text-text text-pretty">
                   {selectedProject.name}
-                </h1>
+                </h2>
 
                 <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm text-muted font-body">
                   <span>Frontend & Diseño</span>
@@ -595,7 +520,7 @@ export default function Projects() {
               </div>
 
               {/* Subtítulo / Lead */}
-              <p className="max-w-[62ch] text-base sm:text-lg leading-relaxed text-muted font-normal font-body text-pretty">
+              <p className="max-w-reading text-body text-text-secondary font-body text-pretty">
                 {selectedProject.description}
               </p>
 
@@ -632,7 +557,7 @@ export default function Projects() {
 
             {/* 2. Qué se construyó / Módulos (Acordeón con accesibilidad y diseño refinado) */}
             {selectedProject.details && selectedProject.details.length > 0 && (
-              <section className="space-y-6 font-body pt-6 border-t border-muted/20">
+              <section className="space-y-6 font-body pt-6 border-t border-rule-default">
                 <div className="pb-1">
                   <span className="font-contrast text-2xl sm:text-3xl text-text block">
                     {selectedProject.detailsTitle || 'Qué se construyó'}
@@ -649,40 +574,41 @@ export default function Projects() {
                     const contentId = `accordion-panel-${i}`
 
                     return (
-                      <div key={i} className="group relative w-full will-change-transform border-b border-muted/10 pb-6 sm:pb-8 last:border-b-0 last:pb-0">
+                      <div key={i} className="group relative w-full border-b border-rule-subtle pb-6 sm:pb-8 last:border-b-0 last:pb-0">
                         {/* Botón Cabecera del Acordeón */}
+                        <h3>
                         <button
                           type="button"
+                          id={`project-detail-trigger-${i}`}
                           onClick={() => toggleAccordion(i)}
                           aria-expanded={isOpen}
                           aria-controls={contentId}
                           className="flex w-full cursor-pointer items-center justify-between text-left transition-colors duration-200 select-none gap-4 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-sm"
                         >
-                          <h3 className="font-body text-xl sm:text-2xl leading-snug text-text transition-colors duration-200 group-hover:text-accent font-medium text-pretty">
+                          <span className="font-body text-xl sm:text-2xl leading-snug text-text transition-colors duration-200 group-hover:text-link font-medium text-pretty">
                             {itemTitle}
-                          </h3>
+                          </span>
 
                           <div className="flex items-center justify-center gap-4 shrink-0" aria-hidden="true">
                             <motion.span
                               animate={{ rotate: isOpen ? 45 : 0 }}
                               transition={{ type: 'spring', stiffness: 500, damping: 15, mass: 1 }}
-                              className={`font-body text-3xl text-shadow-pill leading-none inline-block transition-colors duration-200 ${isOpen
-                                ? 'bg-gradient-accent bg-clip-text text-transparent'
-                                : 'text-muted group-hover:text-accent'
+                              className={`font-body text-3xl leading-none inline-block transition-colors duration-200 ${isOpen
+                                ? 'text-link'
+                                : 'text-muted group-hover:text-link'
                                 }`}
                             >
                               +
                             </motion.span>
                           </div>
                         </button>
+                        </h3>
 
                         {/* Contenido Expandible */}
+                        <div id={contentId} role="region" aria-labelledby={`project-detail-trigger-${i}`} aria-hidden={!isOpen} inert={!isOpen}>
                         <AnimatePresence initial={false}>
                           {isOpen && itemDesc && (
                             <motion.div
-                              id={contentId}
-                              role="region"
-                              aria-label={itemTitle}
                               initial={{ height: 0, opacity: 0 }}
                               animate={{
                                 height: 'auto',
@@ -703,13 +629,14 @@ export default function Projects() {
                               className="overflow-hidden origin-bottom"
                             >
                               <div className="pt-3">
-                                <p className="font-body text-sm sm:text-base leading-relaxed text-muted font-normal text-pretty">
+                                <p className="font-body text-body text-text-secondary font-normal text-pretty">
                                   {itemDesc}
                                 </p>
                               </div>
                             </motion.div>
                           )}
                         </AnimatePresence>
+                        </div>
                       </div>
                     )
                   })}
@@ -720,7 +647,7 @@ export default function Projects() {
             {/* 3. Desafíos y Aprendizajes clave (Jerarquía unificada con font-contrast) */}
             {((selectedProject.challenges && selectedProject.challenges.length > 0) ||
               (selectedProject.learnings && selectedProject.learnings.length > 0)) && (
-                <div className="grid gap-10 sm:grid-cols-2 pt-6 border-t border-muted/20 font-body">
+                <div className="grid gap-10 sm:grid-cols-2 pt-6 border-t border-rule-default font-body">
                   {/* Desafíos clave */}
                   {selectedProject.challenges && selectedProject.challenges.length > 0 && (
                     <div className="space-y-4">
@@ -731,7 +658,7 @@ export default function Projects() {
                         {selectedProject.challenges.map((challenge, i) => (
                           <li
                             key={i}
-                            className="flex items-start gap-3 text-sm sm:text-base text-muted leading-relaxed font-body text-pretty"
+                            className="flex items-start gap-3 text-body text-text-secondary font-body text-pretty"
                           >
                             <span className="mt-2 size-1.5 shrink-0 rounded-full bg-muted/70" aria-hidden="true" />
                             <span>{challenge}</span>
@@ -751,7 +678,7 @@ export default function Projects() {
                         {selectedProject.learnings.map((learning, i) => (
                           <li
                             key={i}
-                            className="flex items-start gap-3 text-sm sm:text-base text-muted leading-relaxed font-body text-pretty"
+                            className="flex items-start gap-3 text-body text-text-secondary font-body text-pretty"
                           >
                             <span className="mt-2 size-1.5 shrink-0 rounded-full bg-muted/70" aria-hidden="true" />
                             <span>{learning}</span>
@@ -765,13 +692,13 @@ export default function Projects() {
 
             {/* 4. Tecnologías y herramientas (Jerarquía unificada con font-contrast) */}
             {selectedProject.stack && selectedProject.stack.length > 0 && (
-              <section className="space-y-4 pt-6 border-t border-muted/20 font-body">
+              <section className="space-y-4 pt-6 border-t border-rule-default font-body">
                 <span className="font-contrast text-2xl sm:text-3xl text-text block">
                   Tecnologías
                 </span>
                 <div className="flex flex-wrap gap-2 pt-1">
                   {selectedProject.stack.map((tech) => (
-                    <TechBadge key={tech} tech={tech} className="text-xs px-2.5 py-1" />
+                    <TechBadge key={tech} tech={tech} />
                   ))}
                 </div>
               </section>
@@ -779,6 +706,6 @@ export default function Projects() {
           </div>
         )}
       </Modal>
-    </section>
+    </Section>
   )
 }

@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
+import { gzipSync } from 'node:zlib'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ffmpegPath from 'ffmpeg-static'
@@ -25,6 +26,9 @@ const FPS = Number(getArg('fps', '24'))
 const charsetArg = getArg('charset', 'dots')
 const CHARSET = CHARSETS[charsetArg] ?? charsetArg
 const rawPath = path.join(outDir, 'frames.rgb')
+// Los colores solo se hornean bajo demanda: el hero tinta el ASCII con un color propio
+// (color="var(--color-muted)"), asi que la pista de color natural pesa 22 MB para nada.
+const WITH_COLORS = process.argv.includes('--colors')
 
 const run = (args) =>
   new Promise((resolve, reject) => {
@@ -89,8 +93,14 @@ for (let frame = 0; frame < frameCount; frame += 1) {
   }
 }
 
-await writeFile(path.join(outDir, 'frames.bin'), baked)
-await writeFile(path.join(outDir, 'colors.bin'), colors)
+// Se publica GZIPEADO y el cliente lo descomprime con DecompressionStream. Estos datos son
+// indices de charset muy repetidos, asi que comprimen al ~4%: 11,4 MB -> 0,45 MB. Hacerlo aqui
+// y no en el servidor evita depender de que el host comprima application/octet-stream, cosa que
+// Vercel y companyia no hacen por defecto.
+await writeFile(path.join(outDir, 'frames.binz'), gzipSync(baked, { level: 9 }))
+if (WITH_COLORS) {
+  await writeFile(path.join(outDir, 'colors.binz'), gzipSync(colors, { level: 9 }))
+}
 await writeFile(
   path.join(outDir, 'meta.json'),
   `${JSON.stringify(
@@ -100,7 +110,7 @@ await writeFile(
       fps: FPS,
       frameCount,
       charset: CHARSET,
-      hasColors: true,
+      hasColors: WITH_COLORS,
       video: path.relative(root, videoPath).replaceAll('\\', '/'),
     },
     null,
@@ -110,5 +120,7 @@ await writeFile(
 await unlink(rawPath)
 
 console.log(`ASCII horneado: ${frameCount} frames, ${COLS}x${evenRows}, ${FPS} fps`)
+console.log(`frames.binz: ${(gzipSync(baked, { level: 9 }).length / 1024 / 1024).toFixed(2)} MB (crudo ${(baked.length / 1024 / 1024).toFixed(2)} MB)`)
+if (!WITH_COLORS) console.log('colores omitidos (usa --colors si necesitas color natural)')
 console.log(`charset: ${CHARSET}`)
 console.log(`out: ${path.relative(root, outDir)}`)

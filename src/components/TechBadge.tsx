@@ -1,4 +1,4 @@
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { cn } from '@/lib/cn'
 import { TECH_REGISTRY, normalizeTechKey, type TechInfo } from '@/data/technologies'
 
@@ -12,6 +12,7 @@ export interface TechBadgeProps {
 }
 
 export default function TechBadge({ tech, className, showIcon = true, href }: TechBadgeProps) {
+  const reduced = useReducedMotion() ?? false
   const key = normalizeTechKey(tech)
   const info = TECH_REGISTRY[key]
 
@@ -25,12 +26,12 @@ export default function TechBadge({ tech, className, showIcon = true, href }: Te
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      whileHover={{ scale: 1.05, y: -1 }}
-      whileTap={{ scale: 0.96 }}
+      whileHover={reduced ? undefined : { scale: 1.05, y: -1 }}
+      whileTap={reduced ? undefined : { scale: 0.96 }}
       transition={{ type: 'spring', stiffness: 420, damping: 26 }}
       title={`Visitar web oficial de ${displayName}`}
       className={cn(
-        'group/badge inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-mono font-medium text-muted/90 select-none backdrop-blur-xs transition-colors duration-200 hover:border-accent/40 hover:bg-white/[0.07] hover:text-text cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
+        'group/badge inline-flex items-center gap-1.5 rounded-tag border border-rule-default bg-surface px-2.5 py-1 text-caption font-mono font-medium text-text-secondary select-none transition-colors duration-200 hover:border-link/50 hover:bg-surface-hover hover:text-text cursor-pointer',
         className
       )}
     >

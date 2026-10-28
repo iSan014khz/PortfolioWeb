@@ -7,30 +7,41 @@
   font-family: 'Breton';
   src: url('../assets/fonts/Breton.woff2') format('woff2');
   font-display: swap;
+  font-weight: 400;
+  font-style: normal;
 }
 
 @font-face {
   font-family: 'Machine';
   src: url('../assets/fonts/Machine.otf') format('opentype');
   font-display: swap;
+  font-weight: 400;
+  font-style: normal;
 }
 
 @font-face {
   font-family: 'Zirena';
   src: url('../assets/fonts/Zirena.woff2') format('woff2');
   font-display: swap;
+  font-weight: 200 900;
+  font-style: normal;
 }
 
 @font-face {
   font-family: 'Exposure';
   src: url('../assets/fonts/ExposureItalicTrial[+20].otf') format('opentype');
   font-display: swap;
+  /* El archivo tiene contornos inclinados, pero su metadata declara estilo normal. */
+  font-weight: 400;
+  font-style: normal;
 }
 
 @font-face {
   font-family: 'Latin';
   src: url('../assets/fonts/latin.woff2') format('woff2');
   font-display: swap;
+  font-weight: 100 900;
+  font-style: normal;
 }
 
 /* =========================================================================
@@ -67,6 +78,11 @@ body,
   --color-text-secondary: #a3a3a3;
   --color-muted: #8c8c8c;
   --color-text-inverse: #0d0d0d;
+  --color-text-inverse-secondary: #666666;
+  --color-surface-inverse: #f0f0f0;
+  --color-surface-elevated: #121212;
+  --color-link: #8298ff;
+  --color-focus: #8298ff;
 
   --color-accent: #1e44ff;
   --color-accent-hover: #385dff;
@@ -76,6 +92,10 @@ body,
   --color-border: rgba(255, 255, 255, 0.1);
   --color-border-subtle: rgba(255, 255, 255, 0.05);
   --color-border-muted: #262626;
+  --color-rule-subtle: rgba(240, 240, 240, 0.08);
+  --color-rule-default: rgba(240, 240, 240, 0.16);
+  --color-rule-strong: rgba(240, 240, 240, 0.28);
+  --color-rule-inverse: rgba(13, 13, 13, 0.18);
 
   /* ── 3.2. Tipografía Semántica ── */
   /* =========================================================================
@@ -110,26 +130,64 @@ body,
 
   /* ── 3.3. Type Ramp (Escala Tipográfica Exacta de Referencia) ── */
   --text-name: clamp(2.25rem, 2.5rem + 2vw, 4.5rem);
+  /* El nombre del hero se coloca con `justify-between`, asi que las dos palabras siempre tocan
+     los bordes: lo que decide si se lee lleno o vacio es cuanto ocupa el tipo respecto al ancho
+     del contenido. En movil esa proporcion es del 13,7%, pero `--text-name` se congela en 72px
+     y para 1920px cae al 5,3% — el nombre pierde 2,6x de presencia y deja un hueco enorme en
+     medio. Esta curva la devuelve al ~11-12% en todo el rango de escritorio.
+     No hay riesgo de que "Palma" salte de linea: a igual proporcion que el movil, que no
+     desborda, el avance relativo del texto es el mismo a cualquier tamano. */
+  --text-name-lg: clamp(4.5rem, 4.5rem + (100vw - 48rem) * 0.0703, 5.625rem); /* 72px @768 → 90px */
+  /* Las categorías se mantienen por debajo del display del hero. */
+  --text-accordion-lg: clamp(2.25rem, 3vw, 2.75rem);
   --text-hero: clamp(2.5rem, 2rem + 3.8vw, 4.8rem);       /* ~76.9px Display */
   --text-section: clamp(1.625rem, 1.4rem + 1.2vw, 2rem);  /* ~32px H1 */
   --text-card: clamp(1.35rem, 1.25rem + 0.5vw, 1.55rem);  /* ~24.8px H3 */
   --text-subtitle: clamp(1.1rem, 1rem + 0.3vw, 1.18rem);  /* ~18.9px H4 */
   --text-lead: clamp(1.125rem, 1rem + 0.5vw, 1.625rem);
   --text-ui: 1rem;                                        /* 16px Links & Buttons */
-  --text-body: 0.89rem;                                   /* 14.25px P / Body */
-  --text-caption: 0.75rem;                                /* 12px Mono labels */
+  --text-body: clamp(1rem, 0.95rem + 0.2vw, 1.125rem);
+  --text-body--line-height: 1.6;
+  --text-body--font-weight: 400;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.4;
+  --text-intro: clamp(1.5rem, 1.25rem + 1vw, 2rem);
+  --text-intro--line-height: 1.45;
+  --text-intro--letter-spacing: var(--tracking-editorial);
+  --text-intro--font-weight: 400;
+  --text-item-title: clamp(1.75rem, 1.5rem + 1vw, 2.5rem);
+  --text-item-title--line-height: 1.12;
+  --text-item-title--letter-spacing: var(--tracking-editorial);
+  --text-item-title--font-weight: 500;
+  --text-section--line-height: 1.1;
+  --text-section--letter-spacing: var(--tracking-editorial);
 
   /* ── 3.4. Tracking & Leading Tokens ── */
   --tracking-editorial: -0.02em;                          /* -2% letter-spacing */
   --tracking-editorial-tight: -0.03em;                    /* -3% letter-spacing */
   --leading-editorial: 1.05;                              /* 1.05 line-height */
 
-  /* ── 3.5. Espaciado y Layout (Ritmo Editorial 64 / 120) ── */
-  --spacing-container-x: clamp(1.25rem, 3.5vw, 3rem);     /* 20px móvil a 48px desktop */
-  --spacing-section-y: clamp(4rem, 6vw, 6rem);             /* 64px a 96px entre secciones */
-  --spacing-inner-complex: clamp(5rem, 7.5vw, 7.5rem);     /* 80px a 120px en componentes complejos */
-  --max-w-content: 44rem;
-  --max-w-page: 85rem;
+  /* ── 3.5. Espaciado y Layout (Ritmo Editorial) ──
+     Section comparte márgenes y medios intervalos entre capítulos. Los anchos
+     `--container-*` generan las utilidades `max-w-*` de Tailwind. */
+  /* Margen lateral en PC: 24px constantes, el `px-6` de la referencia. No crece con el ancho a
+     proposito — quien limita el contenido en pantallas grandes es el `max-width` del contenedor,
+     no el margen, asi que el gutter solo actua como distancia minima al borde. */
+  --spacing-gutter: 1.5rem;                                                  /* 24px en PC */
+  /* Cada sección aporta la mitad del intervalo: 96–128px entre capítulos. */
+  --spacing-section: clamp(3rem, 4vw, 4rem);
+  --spacing-section-tight: clamp(3rem, 4vw, 4rem);
+  --spacing-nav-height: 5.5rem;
+  /* Cruz geometrica del acordeon de Skills. Va en el namespace `--spacing-*` porque es el que
+     alimenta a `size-`; como valor arbitrario habria que escapar los espacios del calc. */
+  --spacing-accordion-icon: 1.125rem;
+  --spacing-inner-complex: clamp(5rem, 7.5vw, 7.5rem);    /* 80px a 120px en componentes complejos */
+  /* Una retícula de composición y medidas interiores para lectura y retrato. */
+  --container-page: 47.5rem;                              /* 760px: ancho de la columna */
+  --container-reading: 65ch;
+  --container-portrait: 36rem;
+  --radius-panel: 1rem;
+  --radius-tag: 9999px;
 
   /* ── 3.6. Tokens de Movimiento & Físicas (Emil Kowalski + Reference Ease) ── */
   --ease-snappy: cubic-bezier(0.65, 0, 0.35, 1);
@@ -150,15 +208,15 @@ body,
    4. UTILIDADES
    ========================================================================= */
 @utility tracking-editorial {
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-editorial);
 }
 
 @utility tracking-editorial-tight {
-  letter-spacing: -0.03em;
+  letter-spacing: var(--tracking-editorial-tight);
 }
 
 @utility leading-editorial {
-  line-height: 1.05;
+  line-height: var(--leading-editorial);
 }
 
 @utility bg-gradient-accent {
@@ -182,6 +240,20 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-text);
+}
+
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 4px;
+}
+
+[data-surface='inverse'] {
+  --color-focus: var(--color-accent);
 }
 
 @media (prefers-reduced-motion: reduce) {

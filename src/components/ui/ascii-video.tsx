@@ -2,8 +2,19 @@
 import { animate, type AnimationPlaybackControls } from 'motion'
 import { cn } from '@/lib/cn'
 import defaultMeta from '../../data/ascii-video/meta.json'
-import defaultFramesUrl from '../../data/ascii-video/frames.bin?url'
-import defaultColorsUrl from '../../data/ascii-video/colors.bin?url'
+import defaultFramesUrl from '../../data/ascii-video/frames.binz?url'
+import { fetchAsciiFrames } from '@/lib/ascii-frames'
+
+/**
+ * Descarga un .binz (buffer crudo gzipeado por el script de horneado) y lo descomprime en el
+ * cliente con DecompressionStream.
+ *
+ * Se comprime en el horneado en lugar de delegarlo al servidor porque los hosts estaticos
+ * deciden comprimir segun el Content-Type, y un .bin viaja como application/octet-stream, que
+ * ni Vercel ni Netlify comprimen por defecto. Al traerlo ya comprimido el ahorro es seguro sea
+ * cual sea el host: 10,9 MB -> 0,49 MB.
+ */
+const fetchPacked = fetchAsciiFrames
 
 const easeOut = [0.23, 1, 0.32, 1] as const
 const easeInOut = [0.77, 0, 0.175, 1] as const
@@ -28,6 +39,7 @@ type AsciiMeta = {
 }
 
 type AsciiVideoProps = {
+  onFirstFrame?: () => void
   meta?: AsciiMeta
   framesUrl?: string
   colorsUrl?: string
@@ -43,6 +55,15 @@ type AsciiVideoProps = {
   type?: 'ease' | 'spring'
   animation?: 'none' | 'fade'
   animationDuration?: number
+  /**
+   * Como encaja el grid horneado en el lienzo.
+   * - `stretch` (por defecto): lo deforma para llenarlo. Correcto solo cuando el contenedor
+   *   tiene una relacion de aspecto parecida a la del video.
+   * - `cover`: preserva la proporcion y recorta el sobrante, como `object-fit: cover`.
+   */
+  fit?: 'stretch' | 'cover'
+  /** Punto focal normalizado del origen al recortar, [x, y]. Por defecto el centro. */
+  focus?: [number, number]
   className?: string
 }
 
@@ -114,6 +135,13 @@ uniform vec4 u_ripples[8];
 uniform int u_rippleCount;
 uniform float u_force;
 
+// Correccion de encuadre. El grid horneado tiene su propia relacion de aspecto (cols/rows) y
+// por defecto se estiraba para llenar el lienzo: en un 16:9 las celdas pasaban a ser 4 veces
+// mas anchas que altas y la imagen se leia como bandas verticales. u_fitScale < 1 en un eje
+// recorta ese eje en lugar de deformarlo, y u_focus decide que franja del origen queda visible.
+uniform vec2 u_fitScale;
+uniform vec2 u_focus;
+
 void main() {
   vec2 uv = v_uv;
 
@@ -138,7 +166,12 @@ void main() {
     return;
   }
 
-  vec2 gridUV = uv * u_gridSize;
+  // El centro se acota para que la ventana recortada nunca se salga del origen.
+  vec2 halfSpan = u_fitScale * 0.5;
+  vec2 center = clamp(u_focus, halfSpan, 1.0 - halfSpan);
+  vec2 uvFit = (uv - 0.5) * u_fitScale + center;
+
+  vec2 gridUV = uvFit * u_gridSize;
   vec2 cellIndex = floor(gridUV);
   vec2 cellUV = fract(gridUV);
 
@@ -152,7 +185,10 @@ void main() {
   }
 
   // Exact physical pixel coordinates inside the cell (centered at 0,0)
-  vec2 cellDim = u_resolution / u_gridSize;
+  // Con recorte solo se ven u_gridSize * u_fitScale celdas repartidas en todo el lienzo, asi
+  // que el tamano en pixeles de cada celda sale de esa cuenta y no del grid completo. Es lo
+  // que devuelve las celdas a proporcion cuadrada.
+  vec2 cellDim = u_resolution / (u_gridSize * u_fitScale);
   vec2 pixelOffset = (cellUV - 0.5) * cellDim;
   float dist = length(pixelOffset);
 
@@ -226,16 +262,27 @@ function createGlyphAtlas(glyphs: string) {
   return canvas
 }
 
-function initWebGL(gl: WebGLRenderingContext, glyphs: string, cols: number, rows: number) {
-  const vs = gl.createShader(gl.VERTEX_SHADER)
-  if (!vs) return null
-  gl.shaderSource(vs, VS_SOURCE)
-  gl.compileShader(vs)
+// Un fallo de compilacion se arrastraba hasta el error de enlace, cuyo log es mucho mas pobre:
+// el del shader trae numero de linea y causa. Con el grid ya solo se veria un lienzo vacio.
+function compile(gl: WebGLRenderingContext, kind: number, source: string, label: string) {
+  const shader = gl.createShader(kind)
+  if (!shader) return null
+  gl.shaderSource(shader, source)
+  gl.compileShader(shader)
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error(`WebGL ${label} shader compile error:`, gl.getShaderInfoLog(shader))
+    gl.deleteShader(shader)
+    return null
+  }
+  return shader
+}
 
-  const fs = gl.createShader(gl.FRAGMENT_SHADER)
+function initWebGL(gl: WebGLRenderingContext, glyphs: string, cols: number, rows: number) {
+  const vs = compile(gl, gl.VERTEX_SHADER, VS_SOURCE, 'vertex')
+  if (!vs) return null
+
+  const fs = compile(gl, gl.FRAGMENT_SHADER, FS_SOURCE, 'fragment')
   if (!fs) return null
-  gl.shaderSource(fs, FS_SOURCE)
-  gl.compileShader(fs)
 
   const program = gl.createProgram()
   if (!program) return null
@@ -320,6 +367,8 @@ function initWebGL(gl: WebGLRenderingContext, glyphs: string, cols: number, rows
       useNaturalColor: gl.getUniformLocation(program, 'u_useNaturalColor'),
       ripples: gl.getUniformLocation(program, 'u_ripples'),
       rippleCount: gl.getUniformLocation(program, 'u_rippleCount'),
+      fitScale: gl.getUniformLocation(program, 'u_fitScale'),
+      focus: gl.getUniformLocation(program, 'u_focus'),
     },
   }
 }
@@ -327,7 +376,7 @@ function initWebGL(gl: WebGLRenderingContext, glyphs: string, cols: number, rows
 export function AsciiVideo({
   meta = defaultMeta,
   framesUrl = defaultFramesUrl,
-  colorsUrl = defaultColorsUrl,
+  colorsUrl,
   charset,
   color = 'natural',
   backgroundColor = 'var(--color-bg)',
@@ -340,8 +389,16 @@ export function AsciiVideo({
   type = ASCII_INTERACTION.type,
   animation = 'none',
   animationDuration = 0.8,
+  fit = 'stretch',
+  focus = [0.5, 0.5],
   className,
+  onFirstFrame,
 }: AsciiVideoProps) {
+  const firstFrameCallback = useRef(onFirstFrame)
+  firstFrameCallback.current = onFirstFrame
+  const firstFrameDrawn = useRef(false)
+  const [focusX, focusY] = focus
+
   const uniqueId = useId()
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -439,6 +496,19 @@ export function AsciiVideo({
       // Resolution uniform
       gl.uniform2f(state.locations.resolution, canvas.width, canvas.height)
 
+      // Encuadre: con `cover` se recorta el eje sobrante en vez de deformar el grid. El grid
+      // horneado es 9:16, asi que en un lienzo apaisado el eje que sobra es el vertical.
+      let fitX = 1
+      let fitY = 1
+      if (fit === 'cover' && canvas.height > 0 && rows > 0) {
+        const srcAspect = cols / rows
+        const dstAspect = canvas.width / canvas.height
+        if (dstAspect > srcAspect) fitY = srcAspect / dstAspect
+        else fitX = dstAspect / srcAspect
+      }
+      gl.uniform2f(state.locations.fitScale, fitX, fitY)
+      gl.uniform2f(state.locations.focus, focusX, focusY)
+
       // Upload Glyph Index Texture (Texture unit 0)
       gl.activeTexture(gl.TEXTURE0)
       gl.bindTexture(gl.TEXTURE_2D, state.glyphDataTex)
@@ -511,7 +581,7 @@ export function AsciiVideo({
       // Single hardware draw call for entire 160x284 grid
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     },
-    [backgroundColor, color, cols, frameSize, rows, syncSize, useNaturalColor]
+    [backgroundColor, color, cols, fit, focusX, focusY, frameSize, rows, syncSize, useNaturalColor]
   )
 
   const pointFromEvent = (clientX: number, clientY: number) => {
@@ -599,14 +669,14 @@ export function AsciiVideo({
     setReady(false)
 
     const load = async () => {
-      const framesResponse = await fetch(framesUrl)
-      const framesBuffer = await framesResponse.arrayBuffer()
+      firstFrameDrawn.current = false
+      const framesBuffer = await fetchPacked(framesUrl)
       if (cancelled) return
       framesRef.current = new Uint8Array(framesBuffer)
 
-      if (useNaturalColor) {
-        const colorsResponse = await fetch(colorsUrl)
-        const colorsBuffer = await colorsResponse.arrayBuffer()
+      // La pista de color solo existe si se horneo con --colors y se pasa colorsUrl explicito.
+      if (useNaturalColor && colorsUrl) {
+        const colorsBuffer = await fetchPacked(colorsUrl)
         if (cancelled) return
         colorsDataRef.current = new Uint16Array(colorsBuffer)
       }
@@ -659,6 +729,10 @@ export function AsciiVideo({
       if (frameChanged || rippleMoved || lastFrameRef.current === -1) {
         lastFrameRef.current = frameIndex
         draw(frameIndex)
+        if (webglStateRef.current && !firstFrameDrawn.current) {
+          firstFrameDrawn.current = true
+          firstFrameCallback.current?.()
+        }
       }
 
       if (playing || physicsActiveRef.current) {

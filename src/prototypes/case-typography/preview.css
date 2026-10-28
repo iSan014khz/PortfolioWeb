@@ -1,0 +1,18 @@
+.case-preview-page { min-height: 100svh; padding: clamp(24px, 6vw, 80px); background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); }
+.case-preview-page h1 { margin-block: 48px 16px; font-size: 32px; line-height: 1.2; }
+.case-preview-page > p { max-width: 50ch; color: var(--color-text-secondary); line-height: 1.6; }
+.case-preview-back, .case-preview-reopen { display: inline-flex; align-items: center; min-height: 44px; cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+.case-preview-reopen { margin-top: 24px; }
+.case-preview-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; width: 100%; font: 13px/1.4 var(--font-body); }
+.case-preview-options { display: flex; gap: 2px; }
+.case-preview-options button { min-height: 44px; padding: 10px 12px; border-radius: 5px; color: var(--color-text-secondary); cursor: pointer; }
+.case-preview-options button[aria-pressed='true'] { background: var(--color-text); color: var(--color-bg); }
+.case-preview-project select { min-height: 44px; max-width: 155px; background: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-rule-default); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+@media (max-width: 639px) {
+  .project-case-modal:has(.case-preview-controls) > div:last-child { padding: 10px 16px; }
+  .case-preview-controls { gap: 6px; font-size: 12px; }
+  .case-preview-options { flex: 1 1 auto; justify-content: space-between; }
+  .case-preview-options button { flex: 1; padding-inline: 8px; }
+  .case-preview-project { flex: 0 1 114px; min-width: 0; }
+  .case-preview-project select { width: 100%; max-width: 100%; padding-inline: 6px; }
+}

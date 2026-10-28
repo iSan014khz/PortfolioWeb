@@ -1,0 +1,55 @@
+/* A single introduction. Loading starts immediately; the prepared visual fades in as a unit. */
+#hero {
+  --hero-background-duration: 1100ms;
+  --hero-copy-duration: 600ms;
+  --hero-name-duration: 900ms;
+}
+.hero-backdrop { opacity: 0; }
+.hero-backdrop[data-ready='true'] {
+  opacity: 1;
+  animation: hero-background-enter var(--hero-background-duration) var(--ease-in-out) backwards;
+}
+.hero-poster { opacity: 1; }
+.hero-intro-copy {
+  animation: hero-copy-enter var(--hero-copy-duration) var(--ease-out) 140ms backwards;
+}
+/* The mask follows the existing word width. Extra breathing room protects italic and descenders. */
+.hero-name-mask {
+  display: inline-block;
+  overflow: hidden;
+  padding-block: .14em;
+  margin-block: -.14em;
+}
+.hero-intro-first-name,
+.hero-intro-last-name {
+  display: inline-block;
+  animation: hero-name-enter var(--hero-name-duration) var(--ease-out) backwards;
+}
+.hero-intro-first-name { animation-delay: 460ms; }
+.hero-intro-last-name { animation-delay: 540ms; }
+@keyframes hero-background-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes hero-copy-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes hero-name-enter {
+  from { opacity: 0; transform: translateY(105%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-backdrop[data-ready='true'],
+  .hero-intro-copy,
+  .hero-intro-first-name,
+  .hero-intro-last-name {
+    animation: hero-gentle-fade var(--duration-fast) var(--ease-out) backwards;
+    animation-delay: 0ms;
+  }
+  .hero-name-mask { overflow: visible; }
+  @keyframes hero-gentle-fade {
+    from { opacity: .8; }
+    to { opacity: 1; }
+  }
+}

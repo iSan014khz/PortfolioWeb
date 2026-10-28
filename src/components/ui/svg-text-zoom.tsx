@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect, useState } from "react"
+import React, { useRef, useLayoutEffect, useState, useId } from "react"
 import {
   motion,
   type MotionValue,
@@ -9,6 +9,8 @@ import {
 import { cn } from "@/lib/utils"
 
 export interface SvgTextZoomProps {
+  /** Conserva la entrada original; editorial revela dos grupos sin dispersar las letras. */
+  entryStyle?: "original" | "editorial" | "convergence"
   /** Texto a renderizar en el SVG */
   text: string
   /** Clases CSS para el contenedor exterior */
@@ -299,11 +301,27 @@ interface MeasuredChar {
   drift: number
 }
 
+/** Entrada reversible que puede solaparse con el zoom sin modificar su geometría ni su foco. */
+function ConvergenceChar({ item, progress, reduced, className }: {
+  item: MeasuredChar; progress: MotionValue<number>; reduced: boolean; className?: string;
+}) {
+  const entry = useTransform(progress, (p) => {
+    const t = clamp01((p - item.index * 0.002) / 0.055);
+    return 1 - Math.pow(1 - t, 3);
+  });
+  const transform = useTransform(entry, (t) => reduced ? 'translate(0px, 0px)' :
+    `translate(${(item.x - 500) * 0.65 * (1 - t)}px, ${-18 * (1 - t)}px) scale(${1 + 0.22 * (1 - t)})`);
+  const opacity = useTransform(entry, [0, 0.6, 1], [0, 1, 1]);
+  return <motion.text x={item.x} y={item.y} textAnchor="start" dominantBaseline="central"
+    className={className} style={{ transform, opacity, transformOrigin: `${item.x}px ${item.y}px` }}>{item.char}</motion.text>;
+}
+
 /**
  * Componente interactivo que realiza un zoom vectorial cinematográfico en una letra específica
  * conforme el usuario hace scroll, con soporte para auto-detección del glifo y calibración manual.
  */
 export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
+  entryStyle = "original",
   text,
   className,
   svgClassName,
@@ -331,6 +349,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
   parallaxIntensity = 1.0,
   panSettle = 0.62,
 }) => {
+  const revealClipId = useId().replace(/:/g, "")
   const shouldReduceMotion = useReducedMotion()
   const textRef = useRef<SVGTextElement | null>(null)
   const measureTextRef = useRef<SVGTextElement | null>(null)
@@ -400,7 +419,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
         }
 
         // 2. Medición de cada carácter para el efecto parallax en capas de profundidad
-        if (enableParallax) {
+        if (enableParallax || entryStyle !== "original") {
           const measured: MeasuredChar[] = []
           for (let i = 0; i < chars.length; i++) {
             const extent = extentOf(i)
@@ -429,7 +448,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
     document.fonts?.ready.then(updateCoordsAndChars)
     window.addEventListener("resize", updateCoordsAndChars)
     return () => window.removeEventListener("resize", updateCoordsAndChars)
-  }, [text, charFocus, charOccurrence, offsetX, offsetY, align, enableParallax, defaultTextX, defaultTextY])
+  }, [text, charFocus, charOccurrence, offsetX, offsetY, align, enableParallax, entryStyle, defaultTextX, defaultTextY])
 
   // 1. Progreso normalizado y suavizado del recorrido de zoom
   const [zoomStart, zoomEnd] = zoomScrollRange
@@ -529,8 +548,11 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
     },
   }
 
+  // Sin `max-width` propio: lo fija quien lo usa. Tenerlo aqui y ademas en `className` dejaba
+  // dos utilidades del mismo tipo compitiendo, y cual gana depende del orden en que Tailwind
+  // las emita, no del orden en que se escriben.
   return (
-    <div className={cn("relative z-20 flex w-full max-w-6xl pointer-events-none", className)}>
+    <div className={cn("relative z-20 flex w-full pointer-events-none", className)}>
       <motion.svg
         viewBox={shouldReduceMotion ? staticViewBox : viewBox}
         preserveAspectRatio="xMidYMid meet"
@@ -539,7 +561,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
         style={{
           opacity: textOpacity,
           display: svgDisplay,
-          filter: exitBlurFilter,
+          filter: shouldReduceMotion ? "none" : exitBlurFilter,
         }}
         shapeRendering="geometricPrecision"
         textRendering="geometricPrecision"
@@ -560,7 +582,64 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
           {text}
         </text>
 
-        {useParallax ? (
+        {entryStyle === "convergence" && measuredChars.length > 0 ? (
+          <g aria-hidden="true">
+            {measuredChars.map((item) => <ConvergenceChar key={item.index} item={item} progress={progress}
+              reduced={shouldReduceMotion ?? false} className={textClassName} />)}
+          </g>
+        ) : entryStyle === "editorial" && measuredChars.length > 0 ? (
+          <>
+            {/* Máscara fija: sólo se mueve el texto. El modo original sigue intacto debajo. */}
+            <defs>
+              <clipPath id={revealClipId} clipPathUnits="userSpaceOnUse">
+                <rect x="-1000" y="0" width="3000" height="170" />
+              </clipPath>
+            </defs>
+            <motion.g
+              aria-hidden="true"
+              initial={animateEntry ? "hidden" : "visible"}
+              whileInView="visible"
+              viewport={{ once: viewportOnce, amount: 0.2 }}
+            >
+              {[0, 1].map((group) => (
+                <g key={group} clipPath={`url(#${revealClipId})`}>
+                  <motion.g
+                    variants={{
+                      hidden: {
+                        transform: shouldReduceMotion ? "translateY(0px)" : "translateY(120px)",
+                        opacity: 0,
+                      },
+                      visible: {
+                        transform: "translateY(0px)",
+                        opacity: 1,
+                        transition: {
+                          duration: shouldReduceMotion ? 0.2 : 0.5,
+                          delay: shouldReduceMotion ? 0 : entryDelay + group * 0.06,
+                          ease: [0.23, 1, 0.32, 1],
+                        },
+                      },
+                    }}
+                  >
+                    {measuredChars.filter((item) =>
+                      group === 0 ? item.index <= text.lastIndexOf(" ") : item.index > text.lastIndexOf(" ")
+                    ).map((item) => (
+                      <text
+                        key={item.index}
+                        x={item.x}
+                        y={item.y}
+                        textAnchor="start"
+                        dominantBaseline="central"
+                        className={textClassName}
+                      >
+                        {item.char}
+                      </text>
+                    ))}
+                  </motion.g>
+                </g>
+              ))}
+            </motion.g>
+          </>
+        ) : useParallax ? (
           <motion.g
             aria-hidden="true"
             variants={animateEntry && !shouldReduceMotion ? fadeInVariants : undefined}

@@ -1,0 +1,12 @@
+{
+  "id": "ixtli-data",
+  "width": 1040,
+  "height": 540,
+  "mobile": [
+    640,
+    640
+  ],
+  "solids": 125,
+  "desktopHeight": 540,
+  "mobileHeight": 640
+}

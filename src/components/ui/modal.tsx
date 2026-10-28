@@ -307,6 +307,7 @@ export type ModalProps = {
   open: boolean;
   onClose: () => void;
   title: ReactNode;
+  ariaLabel?: string;
   description?: ReactNode;
   headerImage?: string;
   children?: ReactNode;
@@ -326,6 +327,7 @@ export type ModalProps = {
 
 interface ModalInnerProps {
   title: ReactNode;
+  ariaLabel?: string;
   titleId: string;
   description?: ReactNode;
   descriptionId: string;
@@ -346,6 +348,7 @@ interface ModalInnerProps {
 
 function ModalInner({
   title,
+  ariaLabel,
   titleId,
   description,
   descriptionId,
@@ -379,15 +382,17 @@ function ModalInner({
   return (
     <motion.div
       {...panelProps}
+      aria-label={title ? undefined : ariaLabel}
+      aria-labelledby={title ? titleId : undefined}
       data-lenis-prevent="true"
       aria-describedby={description ? descriptionId : undefined}
       variants={panelVariants}
       style={{ maxWidth, maxHeight }}
-      className={`relative flex w-full max-h-[86vh] flex-col overflow-hidden rounded-2xl sm:rounded-2xl border border-white/10 bg-[#0c0c0c]/95 text-text shadow-[0_32px_80px_-24px_rgba(0,0,0,0.95)] outline-none ${className}`}
+      className={`relative flex w-full max-h-[86vh] flex-col overflow-hidden rounded-panel border border-rule-default bg-surface-elevated text-text shadow-[0_32px_80px_-24px_rgba(0,0,0,0.95)] outline-none ${className}`}
     >
       {/* Header fijo superior con Título, Año y Botón de Cierre (si title existe) */}
       {title ? (
-        <div className="relative z-10 flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-4 sm:px-8 sm:pt-6 sm:pb-4 border-b border-muted/20">
+        <div className="relative z-10 flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-4 sm:px-8 sm:pt-6 sm:pb-4 border-b border-rule-default">
           <div className="min-w-0 flex-1">
             <h2
               id={titleId}
@@ -410,7 +415,7 @@ function ModalInner({
               type="button"
               onClick={onClose}
               aria-label={closeLabel}
-              className="grid size-8.5 sm:size-9 shrink-0 cursor-pointer place-items-center rounded-full text-muted transition-all duration-150 hover:text-text active:scale-90 outline-none"
+              className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-text-secondary transition-colors duration-150 hover:text-text"
             >
               {CLOSE_ICON}
             </button>
@@ -422,7 +427,7 @@ function ModalInner({
           type="button"
           onClick={onClose}
           aria-label={closeLabel}
-          className="absolute top-4 right-4 sm:top-5 sm:right-6 z-30 grid size-8.5 sm:size-9 shrink-0 cursor-pointer place-items-center rounded-full text-muted transition-all duration-150 hover:text-text active:scale-90 outline-none"
+          className="absolute top-4 right-4 sm:top-5 sm:right-6 z-30 grid size-11 shrink-0 cursor-pointer place-items-center rounded-full text-text-secondary transition-colors duration-150 hover:text-text"
         >
           {CLOSE_ICON}
         </button>
@@ -444,7 +449,7 @@ function ModalInner({
           ref={scrollRef}
           data-lenis-prevent="true"
           style={{ overscrollBehavior: "none" }}
-          className="relative z-10 min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-6 py-8 sm:px-10 sm:py-9 font-body text-sm leading-relaxed text-text/90"
+          className="relative z-10 min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-6 py-8 sm:px-10 sm:py-9 font-body text-body text-text/90"
         >
           {/* Imagen de fondo en la cabecera que sube y desaparece naturalmente al scrollear */}
           {headerImage ? (
@@ -467,7 +472,7 @@ function ModalInner({
 
       {/* Footer */}
       {footer ? (
-        <div className="relative z-10 flex shrink-0 items-center justify-end gap-3 border-t border-white/5 bg-white/[0.02] px-6 py-4 sm:px-8">
+        <div className="relative z-10 flex shrink-0 items-center justify-end gap-3 border-t border-rule-subtle bg-surface-hover px-6 py-4 sm:px-8">
           {footer}
         </div>
       ) : null}
@@ -479,6 +484,7 @@ export function Modal({
   open,
   onClose,
   title,
+  ariaLabel,
   description,
   headerImage,
   children,
@@ -571,6 +577,7 @@ export function Modal({
           {/* Panel interno que monta y enlaza useScroll al abrirse */}
           <ModalInner
             title={title}
+            ariaLabel={ariaLabel}
             titleId={titleId}
             description={description}
             descriptionId={descriptionId}

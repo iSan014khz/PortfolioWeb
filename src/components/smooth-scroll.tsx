@@ -1,4 +1,6 @@
 import { ReactLenis } from 'lenis/react'
+import { useReducedMotion } from 'motion/react'
+import { useMemo } from 'react'
 import 'lenis/dist/lenis.css'
 
 const lenisOptions = {
@@ -16,8 +18,10 @@ const lenisOptions = {
 }
 
 export default function SmoothScroll({ children }: { children: React.ReactNode }) {
+  const reduced = useReducedMotion() ?? false
+  const options = useMemo(() => ({ ...lenisOptions, smoothWheel: !reduced }), [reduced])
   return (
-    <ReactLenis root options={lenisOptions}>
+    <ReactLenis root options={options}>
       {children}
     </ReactLenis>
   )

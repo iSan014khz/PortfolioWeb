@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { motion, useReducedMotion, useScroll, useTransform, useSpring, type MotionValue } from 'motion/react'
+import { Container, Section } from '@/components/Section'
 
 type TextSegment = {
   text: string
@@ -45,7 +46,7 @@ function ScrollChar({
   return (
     <motion.span
       style={{ opacity, y }}
-      className="inline-block will-change-transform"
+      className="inline-block"
     >
       {char === ' ' ? '\u00A0' : char}
     </motion.span>
@@ -69,7 +70,7 @@ function ScrollAnimatedText({
   let globalCharIndex = 0
 
   return (
-    <>
+    <span aria-hidden="true">
       {segments.map((seg, segIdx) => {
         const words = seg.text.split(' ')
 
@@ -120,7 +121,7 @@ function ScrollAnimatedText({
           </span>
         )
       })}
-    </>
+    </span>
   )
 }
 
@@ -147,13 +148,15 @@ export default function About() {
   const activeProgress = reduced ? scrollYProgress : smoothProgress
 
   return (
-    <section
+    <Section
       ref={ref}
       id="about"
-      className="flex min-h-svh w-full flex-col items-center justify-start px-5 sm:px-8 md:px-12 py-16 sm:py-20 md:py-24"
+      className="flex flex-col items-center justify-start"
     >
-      <div className="flex w-full max-w-2xl flex-col">
-        <p className="text-left font-body text-3xl sm:text-2xl md:text-3xl tracking-tight leading-relaxed text-text text-pretty">
+      <Container className="flex flex-col">
+        <h2 className="sr-only">Acerca de mi trabajo</h2>
+        <p className="max-w-reading text-left font-body text-intro text-text text-pretty">
+          <span className="sr-only">{segments.map((segment) => segment.text).join('')}</span>
           <ScrollAnimatedText
             segments={segments}
             progress={activeProgress}
@@ -162,7 +165,7 @@ export default function About() {
             reduced={reduced}
           />
         </p>
-      </div>
-    </section>
+      </Container>
+    </Section>
   )
 }

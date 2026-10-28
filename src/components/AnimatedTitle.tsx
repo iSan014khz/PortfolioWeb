@@ -1,4 +1,4 @@
-import { motion, type Transition } from 'motion/react'
+import { motion, useReducedMotion, type Transition } from 'motion/react'
 import React from 'react'
 
 export interface AnimatedTitleProps {
@@ -33,13 +33,14 @@ export default function AnimatedTitle({
   as: Component = 'h2',
   once = true,
 }: AnimatedTitleProps) {
-  const transition = transitions[animation](delay)
+  const reduced = useReducedMotion() ?? false
+  const transition = reduced ? { duration: 0 } : transitions[animation](delay)
 
   return (
     <Component className={`self-start font-contrast text-section font-semibold tracking-editorial text-text overflow-hidden ${className}`}>
       <motion.span
         className="block leading-editorial py-1"
-        initial={{ y: '100%', opacity: 0, filter: 'blur(4px)', skewY: '15deg' }}
+        initial={reduced ? false : { y: '100%', opacity: 0, filter: 'blur(4px)', skewY: '15deg' }}
         whileInView={{ y: '0%', opacity: 1, filter: 'blur(0px)', skewY: '0deg' }}
         transition={transition}
         viewport={{ once, margin: '-20px' }}
