@@ -111,7 +111,19 @@ export default function IsometricStory({ projectId, progress }: { projectId: Iso
           const reveal = reduced ? 1 : smooth(i * 2.6, i * 2.6 + 0.85, time)
           business.style.opacity = String(reveal)
           business.setAttribute('transform', `${base(business)} translate(0 ${(12 * (1 - reveal)).toFixed(2)})`)
-          if (routes[i]) routes[i].style.opacity = String(reveal * 0.7)
+          if (routes[i]) {
+            // Grow each dash from business to phone; the remaining path is one long gap.
+            // The same playhead reverses the drawing without a separate timed animation.
+            const routeProgress = reduced ? 1 : smooth(i * 2.6 + 0.15, i * 2.6 + 1, time)
+            const length = lengths[i] ?? 0
+            const distance = length * routeProgress
+            const complete = Math.floor(distance / 12)
+            const partial = Math.min(5, distance - complete * 12)
+            routes[i].style.strokeDasharray = routeProgress >= 1
+              ? '5 7'
+              : `${'5 7 '.repeat(complete)}${partial.toFixed(3)} ${length + 12}`
+            routes[i].style.opacity = distance > 0 ? '0.7' : '0'
+          }
           if (rows[i]) rows[i].style.opacity = String(reveal)
           if (accents[i]) accents[i].style.opacity = String(reveal)
         })

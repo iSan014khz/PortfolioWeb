@@ -14,7 +14,16 @@
   padding-top: max(20px, env(safe-area-inset-top));
   /* Leave the prototype comparison picker below the project, never over its artwork. */
   padding-bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px));
-  border-top: 1px solid var(--color-rule-default);
+  border-top: 1px solid transparent;
+}
+.project-divider {
+  position: absolute;
+  top: -1px;
+  inset-inline: 0;
+  height: 1px;
+  background: var(--color-rule-default);
+  transform-origin: center;
+  pointer-events: none;
 }
 .project-sticky-header { min-width: 0; }
 .project-sticky-title {
