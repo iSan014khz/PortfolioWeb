@@ -8,8 +8,10 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, import.meta.dirname, 'VITE_')
   const productionDomain = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VITE_VERCEL_PROJECT_PRODUCTION_URL
-  const configuredSite = productionDomain ? `https://${productionDomain}` : environment.VITE_SITE_URL
-  const siteUrl = configuredSite ? new URL(configuredSite).origin : ''
+  const configuredSite = productionDomain
+    ? `https://${productionDomain}`
+    : environment.VITE_SITE_URL || 'https://santiagopalma.vercel.app'
+  const siteUrl = new URL(configuredSite).origin
   return {
   plugins: [react(), tailwindcss(), {
     name: 'production-site-metadata',
