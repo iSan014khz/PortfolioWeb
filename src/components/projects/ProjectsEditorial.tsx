@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useReducedMotion, useScroll, useSpring } from 'motion/react'
-import { useLenis } from 'lenis/react'
+import ScrollReveal from '@/components/ui/scroll-reveal'
 import type { Project } from '@/data/projects'
 import { Container, Section } from '@/components/Section'
 import TechnologyLogos from './TechnologyLogos'
@@ -28,15 +28,10 @@ function ProjectEntry({ project, onOpen }: {
     return () => observer.disconnect()
   }, [])
   const reduced = useReducedMotion() ?? false
-  const lenis = useLenis()
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
   const progress = useSpring(scrollYProgress, { stiffness: 110, damping: 27, mass: 0.55 })
   const presentation = projectPresentation[project.id]
-  const replay = () => {
-    if (!ref.current) return
-    if (lenis) lenis.scrollTo(ref.current, { immediate: reduced, duration: 0.85 })
-    else ref.current.scrollIntoView({ block: 'start', behavior: reduced ? 'instant' : 'smooth' })
-  }
+
 
   return (
     <article
@@ -49,18 +44,18 @@ function ProjectEntry({ project, onOpen }: {
       <div className="project-sticky-frame">
       <header className="project-sticky-header">
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-          <h3 id={`editorial-project-${project.id}`} className="font-body project-sticky-title">
+          <ScrollReveal as="h3" id={`editorial-project-${project.id}`} className="font-body project-sticky-title">
             {project.name}
-          </h3>
+          </ScrollReveal>
           <span className="font-body text-caption text-text-secondary tabular-nums">{project.year}</span>
         </div>
-        <p className="project-sticky-description max-w-reading font-body text-text-secondary text-pretty">
+        <ScrollReveal as="p" className="project-sticky-description max-w-reading font-body text-text-secondary text-pretty">
           {presentation?.summary ?? project.subtitle}
-        </p>
+        </ScrollReveal>
       </header>
 
       <figure className="project-sticky-art">
-        {nearViewport && <Suspense fallback={null}><IsometricProject projectId={project.id as IsometricId} progress={progress} onReplay={replay} /></Suspense>}
+        {nearViewport && <Suspense fallback={null}><IsometricProject projectId={project.id as IsometricId} progress={progress} /></Suspense>}
       </figure>
 
       <div className="project-sticky-footer flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
@@ -89,7 +84,7 @@ export default function ProjectsEditorial({ preview = false }: { preview?: boole
   return (
     <Section id="projects" className={preview ? 'projects-editorial projects-editorial-preview' : 'projects-editorial'}>
       <Container>
-        <h2 className="mb-8 font-contrast text-section font-normal tracking-editorial sm:mb-10">Proyectos</h2>
+        <ScrollReveal as="h2" className="mb-8 font-contrast text-section font-normal tracking-editorial sm:mb-10">Proyectos</ScrollReveal>
         <div className="project-scroll-list">
           {editorialProjects.map(project => (
             <ProjectEntry key={project.id} project={project} onOpen={setSelected} />

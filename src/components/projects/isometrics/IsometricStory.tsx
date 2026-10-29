@@ -23,7 +23,7 @@ function newsAt(time: number): News | null {
   return { id: step + 3, business: step % 3, kind: step % 2 ? 'good' : 'alert', start: 10.5 + step * 3.5 }
 }
 
-export default function IsometricStory({ projectId, progress, onReplay }: { projectId: IsometricId; progress: MotionValue<number>; onReplay: () => void }) {
+export default function IsometricStory({ projectId, progress }: { projectId: IsometricId; progress: MotionValue<number>; onReplay?: () => void }) {
   const drawingRef = useRef<HTMLDivElement>(null)
   const reduced = useReducedMotion() ?? false
   // Stable markup prevents context renders from replacing the SVG nodes used by the playhead.
@@ -296,9 +296,7 @@ export default function IsometricStory({ projectId, progress, onReplay }: { proj
   return (
     <div className="project-isometric-stage">
       <div ref={drawingRef} className="project-isometric" data-active="false" dangerouslySetInnerHTML={markup} />
-      <button type="button" className="project-isometric-replay" onClick={onReplay} aria-label={`Repetir animación de ${projectId}`}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M20 7v5h-5M20 12a8 8 0 1 0-2.2 5.5M20 7v5" /></svg>
-      </button>
+
     </div>
   )
 }

@@ -309,11 +309,16 @@ function ConvergenceChar({ item, progress, reduced, className }: {
     const t = clamp01((p - item.index * 0.002) / 0.055);
     return 1 - Math.pow(1 - t, 3);
   });
-  const transform = useTransform(entry, (t) => reduced ? 'translate(0px, 0px)' :
-    `translate(${(item.x - 500) * 0.65 * (1 - t)}px, ${-18 * (1 - t)}px) scale(${1 + 0.22 * (1 - t)})`);
+  // Native vector transforms avoid separate rasterized glyph layers during zoom.
+  const transform = useTransform(entry, (t) => {
+    const scale = reduced ? 1 : 1 + 0.22 * (1 - t);
+    const dx = reduced ? 0 : (item.x - 500) * 0.65 * (1 - t);
+    const dy = reduced ? 0 : -18 * (1 - t);
+    return `translate(${dx + item.x * (1 - scale)} ${dy + item.y * (1 - scale)}) scale(${scale})`;
+  });
   const opacity = useTransform(entry, [0, 0.6, 1], [0, 1, 1]);
-  return <motion.text x={item.x} y={item.y} textAnchor="start" dominantBaseline="central"
-    className={className} style={{ transform, opacity, transformOrigin: `${item.x}px ${item.y}px` }}>{item.char}</motion.text>;
+  return <motion.g transform={transform} opacity={opacity}><text x={item.x} y={item.y} textAnchor="start" dominantBaseline="central"
+    className={className}>{item.char}</text></motion.g>;
 }
 
 /**
@@ -517,7 +522,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
   const effectiveHideThreshold = hideThreshold ?? (Math.max(zoomScrollRange[1], fadeScrollRange[1]) + 0.02)
   const svgDisplay = useTransform(
     progress,
-    (v) => (v >= effectiveHideThreshold ? "none" : "block")
+    (v) => (v >= effectiveHideThreshold ? "hidden" : "visible")
   )
 
   // Con movimiento reducido se conserva el fundido (no es vestibular) pero se anula el travelling
@@ -552,7 +557,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
   // dos utilidades del mismo tipo compitiendo, y cual gana depende del orden en que Tailwind
   // las emita, no del orden en que se escriben.
   return (
-    <div className={cn("relative z-20 flex w-full pointer-events-none", className)}>
+    <motion.div style={{ filter: shouldReduceMotion ? "none" : exitBlurFilter }} className={cn("relative z-20 flex w-full pointer-events-none isolate", className)}>
       <motion.svg
         viewBox={shouldReduceMotion ? staticViewBox : viewBox}
         preserveAspectRatio="xMidYMid meet"
@@ -560,8 +565,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
         aria-label={text}
         style={{
           opacity: textOpacity,
-          display: svgDisplay,
-          filter: shouldReduceMotion ? "none" : exitBlurFilter,
+          visibility: svgDisplay,
         }}
         shapeRendering="geometricPrecision"
         textRendering="geometricPrecision"
@@ -694,7 +698,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
           </motion.text>
         )}
       </motion.svg>
-    </div>
+    </motion.div>
   )
 }
 

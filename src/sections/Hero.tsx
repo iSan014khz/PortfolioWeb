@@ -15,16 +15,15 @@ const WIDE_QUERY = '(min-width: 768px)'
 export default function Hero() {
   const [playAscii, setPlayAscii] = useState(false)
   const [asciiVisible, setAsciiVisible] = useState(false)
-  const [posterReady, setPosterReady] = useState(false)
   const [isWide, setIsWide] = useState(false)
   const reduced = useReducedMotion() ?? false
 
   useEffect(() => {
     if (reduced) return
     let cancelled = false
-    // Leave the first paint to the poster and text; prepare code and data together.
+    // Prepare code and data together.
     const frame = window.requestAnimationFrame(() => {
-      // If the code cannot be fetched, keep the poster instead of throwing from Suspense.
+      // If the code cannot be fetched, leave the background empty instead of throwing from Suspense.
       void loadAscii().then(() => { if (!cancelled) setPlayAscii(true) }).catch(() => {})
       void fetchAsciiFrames().catch(() => {})
     })
@@ -45,17 +44,7 @@ export default function Hero() {
       pad="tight"
       className="relative flex min-h-[calc(100svh-var(--spacing-nav-height))] flex-col justify-between overflow-hidden text-text"
     >
-      <div aria-hidden="true" data-ready={posterReady || asciiVisible} className="hero-backdrop pointer-events-none absolute inset-0 h-full w-full mask-b-from-45% mask-b-to-100%">
-        <img
-          src="/hero-ascii-poster.webp"
-          alt=""
-          width="720"
-          height="1280"
-          fetchPriority="high"
-          loading="eager"
-          onLoad={() => setPosterReady(true)}
-          className="hero-poster absolute inset-0 h-full w-full object-fill md:object-cover"
-        />
+      <div aria-hidden="true" data-ready={asciiVisible} className="hero-backdrop pointer-events-none absolute inset-0 h-full w-full mask-b-from-45% mask-b-to-100%">
       {playAscii && !reduced && (
         <motion.div
           initial={{ opacity: 0 }}

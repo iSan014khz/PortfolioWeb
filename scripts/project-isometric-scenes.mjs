@@ -8,9 +8,33 @@ const fit = (bounds, w, h, camera = {}) => setProjection(k.fitProjection(bounds,
 const animate = (start, end, height = 16) => ({ part: 'construction', phase: [start / 10, end / 10], offset: [0, 0, height], reveal: true })
 
 export function constructionHouse() {
-  fit(k.boxCorners(rect(-112, -84, 224, 175), -5, 137), 890, 550, { azimuth: 54, elevation: 31 })
+  fit(k.boxCorners(rect(-145, -95, 290, 195), -5, 137), 890, 550, { azimuth: 54, elevation: 31 })
   const s = new Scene('construction-house', '')
-  s.slab('site.ground', rect(-108, -80, 216, 164, 3), -4, 4, 'graphite')
+  s.slab('site.ground', rect(-140, -90, 280, 185, 3), -4, 4, 'graphite')
+  // A small materials and finishing area flanks the house throughout its construction.
+  const supplies = animate(.25, 1.2, 5)
+  for (const x of [-132, -117]) s.slab(`site.pallet-foot-${x}`, rect(x, 22, 4, 34), 0, 3, 'graphite', supplies)
+  for (let i = 0; i < 5; i++) s.slab(`site.pallet-board-${i}`, rect(-135, 22 + i * 7, 25, 5), 3, 1.5, 'porcelain', supplies)
+  for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) {
+    s.slab(`site.brick-${row}-${col}`, rect(-133, 24 + col * 10, 21, 9, .3), 4.5 + row * 5, 4.7, 'stone', animate(.5 + row * .15, 1.4 + row * .15, 4))
+  }
+  const scaffold = animate(2, 3, 5)
+  for (const x of [101, 126]) for (const y of [-48, 12]) {
+    s.cyl(`site.scaffold-post-${x}-${y}`, x, y, 1, 0, 78, 'porcelain', scaffold)
+    s.slab(`site.scaffold-foot-${x}-${y}`, rect(x - 3, y - 3, 6, 6), 0, 1, 'graphite', scaffold)
+  }
+  for (const z of [28, 58]) {
+    s.slab(`site.scaffold-deck-${z}`, rect(99, -50, 29, 64), z, 2, 'graphite', scaffold)
+    s.mark(`site.scaffold-brace-${z}`, ink(k.segment([126, -48, z - 25], [126, 12, z], getProjection()), 'mid'), [126, -18, z], 'ink', scaffold)
+  }
+  const finish = animate(6.1, 7, 4)
+  for (const [i, x] of [100, 121].entries()) {
+    s.cyl(`site.paint-bucket-${i}`, x, 64, 7, 0, 13, 'porcelain', finish)
+    s.cyl(`site.paint-lid-${i}`, x, 64, 7.5, 13, 1, 'graphite', finish)
+    s.cyl(`site.paint-grip-${i}`, x, 64, 2, 14, 1, 'porcelain', finish)
+  }
+  s.slab('site.tile-stack', rect(-126, 69, 27, 20, .4), 0, 7, 'porcelain', finish)
+  for (const z of [2, 4, 6]) s.mark(`site.tile-edge-${z}`, ink(k.segment([-126, 89, z], [-99, 89, z], getProjection()), 'faint'), [-112, 89, z], 'ink', finish)
   s.mark('site.plan', ink(k.planOutline(rect(-78, -53, 156, 106), 0.1, getProjection()), 'mid'), [0, 0, 0.1])
   // Nothing above ground exists at the beginning. Foundations and each masonry course have their own cue.
   for (const [i, plan] of [rect(-78, -53, 156, 7), rect(-78, 46, 156, 7), rect(-78, -46, 7, 92), rect(71, -46, 7, 92)].entries()) {

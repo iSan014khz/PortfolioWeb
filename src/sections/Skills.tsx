@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform, useSpring, type Variants } from 'motion/react'
 import { skillCategories, type SkillCategory } from '../data/skills'
-import AnimatedTitle from '@/components/AnimatedTitle'
+import ScrollReveal from '@/components/ui/scroll-reveal'
 import TechBadge from '@/components/TechBadge'
 import { Container, Section } from '@/components/Section'
 
@@ -178,9 +178,9 @@ export default function Skills() {
             className="flex flex-col items-center justify-start overflow-x-clip"
         >
             <Container className="flex flex-col gap-8 sm:gap-10">
-                <AnimatedTitle animation="spring">
+                <ScrollReveal as="h2" className="self-start font-contrast text-section font-semibold tracking-editorial text-text">
                     Habilidades
-                </AnimatedTitle>
+                </ScrollReveal>
 
                 {/* Lista de acordeones con respiro y separación entre secciones */}
                 <div className="group/list flex w-full flex-col divide-y divide-rule-subtle">

@@ -8,7 +8,7 @@ export const sceneGeometry = {
       640,
       490
     ],
-    "solids": 161,
+    "solids": 194,
     "mobileHeight": 490
   },
   "ixtli": {
