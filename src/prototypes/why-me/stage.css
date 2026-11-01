@@ -1,0 +1,18 @@
+body { margin: 0; background: var(--color-bg); color: var(--color-text); }
+.lab-track { height: 420svh; }
+.lab-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; display: grid; place-items: center; }
+.lab-header { position: absolute; top: 28px; left: 5%; right: 5%; display: flex; justify-content: space-between; gap: 20px; font: 11px/1.5 system-ui; letter-spacing: .1em; color: var(--color-text-secondary); }
+.lab-header a { color: var(--color-text); text-decoration: none; }
+.lab-caption { position: absolute; top: 17%; text-align: center; }
+.lab-caption h1 { font: 12px/1.5 system-ui; text-transform: uppercase; letter-spacing: .22em; }
+.lab-caption p { margin-top: 8px; color: var(--color-text-secondary); font: 13px/1.5 system-ui; }
+.lab-title { position: relative; z-index: 2; width: min(92vw, 1440px); height: auto; overflow: visible; pointer-events: none; }
+.lab-destination { position: absolute; display: flex; align-items: center; gap: 36px; pointer-events: none; }
+.lab-destination p { font: 28px/1.4 var(--font-body); }
+.lab-destination img { width: min(25vw, 240px); aspect-ratio: 1; object-fit: cover; border-radius: 4px; }
+.lab-guide { position: absolute; bottom: 98px; width: min(310px, 80vw); font: 10px/1.6 system-ui; letter-spacing: .1em; color: var(--color-text-secondary); }
+.lab-guide > span:nth-child(2) { float: right; font-variant-numeric: tabular-nums; }
+.lab-meter { height: 2px; margin: 10px 0; background: #333; }
+.lab-meter div { height: 100%; background: var(--color-text); transform-origin: left; }
+.lab-guide p { text-align: center; letter-spacing: 0; font-size: 11px; }
+@media (max-width: 600px) { .lab-header { font-size: 9px; } .lab-caption { top: 22%; } .lab-destination { flex-direction: column; gap: 16px; } .lab-destination p { font-size: 20px; } .lab-destination img { width: 32vw; } }

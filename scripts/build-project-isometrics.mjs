@@ -3,7 +3,7 @@ import path from 'node:path'
 import {
   Scene, storefront, k, a, front, ink, planeLine, circleOn,
   rect, wrap, checkIcon, businessIcon, materialCss, metadata, OUT,
-  setProjection, getProjection, renderScene,
+  setProjection, getProjection, renderScene, doorGeometry,
 } from './project-isometric-shapes.mjs'
 import { constructionHouse, marketCandidate, analysisLens } from './project-isometric-scenes.mjs'
 import { shippingOutcome } from './project-isometric-shipping.mjs'
@@ -34,7 +34,7 @@ function businessGlyph(kind) {
   const scene = new Scene(`business-${kind}`, '')
   storefront(scene, 0, 0, kind)
   const shadow = `<path class="iso-halo" d="${k.haloOf(rect(-4, -3, 66, 56, 3), 0, 3, getProjection())}"/>`
-  return { body: shadow + renderScene(scene), solids: scene.R.solids.length }
+  return { body: `<g ${doorGeometry([38, 45.1, 6])}>${shadow + renderScene(scene)}</g>`, solids: scene.R.solids.length }
 }
 
 function warning(F, x, y, s = 0, size = 7) {

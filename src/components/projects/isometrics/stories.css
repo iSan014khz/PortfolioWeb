@@ -7,6 +7,7 @@
   height: 100%;
 }
 .project-isometric { width: 100%; height: 100%; isolation: isolate; }
+.project-isometric [data-touch-reaction] { transform-box: fill-box; transform-origin: center; }
 .project-isometric > svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .project-isometric .story-route {
   fill: none; stroke: var(--story-line); stroke-width: 1.2;
@@ -35,6 +36,20 @@
 .project-isometric [data-kind='alert'] [data-notice-alert] { display: block; }
 .project-isometric [data-phone-row][data-received='true'] > .mat-graphite > .iso-solid > .iso-edge { stroke: var(--story-blue); }
 .project-isometric [data-phone-row][data-status='alert'] > .mat-graphite > .iso-solid > .iso-edge { stroke: var(--story-amber); }
+/* Dark screen behind the original notification cards. */
+#project-iso-ixtli [data-item='phone.glass'] > .mat-screen {
+  --anatomy-top: #77777d;
+  --anatomy-paper: #77777d;
+  --anatomy-shade-0: #626268;
+  --anatomy-shade-1: #77777d;
+  --anatomy-shade-2: #707076;
+  --anatomy-shade-3: #838389;
+}
+#project-iso-ixtli [data-phone-row] > .mat-graphite {
+  --anatomy-paper: #eeeeeB;
+  --anatomy-top: #eeeeeB;
+  --anatomy-shade-1: #eeeeeB;
+}
 .project-isometric [data-ui-good], .project-isometric [data-ui-alert] { transition: opacity 220ms var(--ease-out); }
 .project-isometric-replay {
   position: absolute; top: 8px; right: 8px; display: grid;

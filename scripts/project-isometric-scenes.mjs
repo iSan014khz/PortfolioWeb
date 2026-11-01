@@ -1,6 +1,6 @@
 import {
   Scene, k, G, a, front, plane, local, ink, planeLine, circleOn,
-  rect, getProjection, setProjection, renderScene,
+  rect, getProjection, setProjection, renderScene, doorGeometry,
 } from './project-isometric-shapes.mjs'
 import { productBottle } from './project-isometric-details.mjs'
 
@@ -142,7 +142,7 @@ export function constructionHouse() {
   }
   const body = renderScene(s).replace(/(<g data-item="window\.glass-\d"[^>]*>)/g, '$1<style>.house-window-glass .iso-fill,.house-window-glass .iso-shade,.house-window-glass .iso-top{fill-opacity:.18}</style>')
     .replace(/data-item="window\.glass-(\d)"/g, 'data-item="window.glass-$1" class="house-window-glass"')
-  return { body, solids: s.R.solids.length }
+  return { body: `<g ${doorGeometry([-22, 50.2, 8])}>${body}</g>`, solids: s.R.solids.length }
 }
 
 export function marketCandidate(index) {

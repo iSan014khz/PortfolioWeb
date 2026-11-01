@@ -28,6 +28,12 @@ const ink = (d, tone = 'mid', free = false) => k.lineSvg(d, { tone, free })
 const planeLine = (F, points, s = 0, tone = 'mid', free = false) => ink(planePath(F, points, s), tone, free)
 const circleOn = (F, x, y, r, s = 0, tone = 'mid') => ink(planePath(F, k.circleRing(x, y, r, 28), s, true), tone)
 const rect = (x, y, w, d, r = 0) => ({ x, y, w, d, r })
+// Projected hinge and axes allow a real 90-degree turn in the existing SVG camera.
+export function doorGeometry(point) {
+  const hinge = at(point)
+  const axes = [[1, 0, 0], [0, 0, 1], [0, 1, 0]].flatMap(delta)
+  return `data-door-hinge="${hinge.join(',')}" data-door-axes="${axes.join(',')}"`
+}
 
 function materialCss(id) {
   // Anatomy's original light palette, without custom blue/copper body materials.

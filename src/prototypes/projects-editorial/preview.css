@@ -1,0 +1,79 @@
+@import '../../styles/tokens.css';
+@source './';
+
+.projects-copy-toolbar {
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  padding: 6px 6px 6px 16px;
+  border: 1px solid var(--color-rule-default);
+  border-radius: 12px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  font: 13px/1.4 var(--font-body);
+  transform: translateX(-50%);
+}
+
+.projects-copy-toolbar > a {
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+  text-underline-offset: 4px;
+}
+
+.projects-copy-toolbar > a:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+.projects-copy-switch {
+  display: flex;
+  gap: 2px;
+}
+
+.projects-copy-switch button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.projects-copy-switch button[aria-pressed='true'] {
+  background: var(--color-text);
+  color: var(--color-text-inverse);
+}
+
+.editorial-project-image {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 26rem;
+  height: auto;
+  object-fit: contain;
+}
+
+.editorial-feature-title {
+  font-size: clamp(2.25rem, 4vw, 3rem);
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: var(--tracking-editorial);
+}
+
+.editorial-project-image[data-featured] {
+  width: 100%;
+  max-height: none;
+}
+
+@media (max-width: 420px) {
+  .projects-copy-toolbar {
+    gap: 10px;
+    padding-left: 12px;
+    font-size: 12px;
+  }
+}

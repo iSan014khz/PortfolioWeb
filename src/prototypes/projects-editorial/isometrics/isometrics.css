@@ -1,0 +1,67 @@
+.project-isometric-scroll {
+  position: relative;
+  height: clamp(660px, 110svh, 1050px);
+  width: 100%;
+}
+
+.project-isometric-sticky {
+  position: sticky;
+  top: clamp(24px, 10svh, 96px);
+  width: 100%;
+}
+
+.project-isometric {
+  width: 100%;
+  isolation: isolate;
+}
+
+.project-isometric > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.project-isometric .iso-ambient-signal,
+.project-isometric .iso-ambient-breathe {
+  animation: project-iso-breathe 7.6s ease-in-out infinite;
+}
+
+.project-isometric .iso-ambient-signal {
+  animation-duration: 9.3s;
+  animation-delay: -3.8s;
+}
+
+.project-isometric .iso-ambient-lamp {
+  animation: project-iso-lamp 8.7s ease-in-out -2s infinite;
+}
+
+.project-isometric .iso-ambient-level {
+  animation: project-iso-level 6.8s ease-in-out -1.6s infinite;
+}
+
+.project-isometric[data-active='false'] *,
+.project-isometric[data-reduced='true'] * {
+  animation-play-state: paused !important;
+}
+
+@keyframes project-iso-breathe {
+  0%, 100% { opacity: 0.76; }
+  50% { opacity: 1; }
+}
+
+@keyframes project-iso-lamp {
+  0%, 100% { opacity: 0.87; }
+  55% { opacity: 1; }
+}
+
+@keyframes project-iso-level {
+  0%, 100% { transform: translate(0px, 0px); }
+  50% { transform: translate(-0.45px, 0.3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-isometric-scroll { height: auto; }
+  .project-isometric-sticky { position: relative; top: 0; }
+  .project-isometric * { animation: none !important; }
+}

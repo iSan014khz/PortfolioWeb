@@ -4,6 +4,7 @@ import ixtli from './assets/ixtli.svg?raw'
 import bohorquez from './assets/bohorquez.svg?raw'
 import data from './assets/ixtli-data.svg?raw'
 import './stories.css'
+import { attachPieceReactions } from './piece-reactions'
 
 const art = { ixtli, bohorquez, 'ixtli-data': data }
 export type IsometricId = keyof typeof art
@@ -28,6 +29,12 @@ export default function IsometricStory({ projectId, progress }: { projectId: Iso
   const reduced = useReducedMotion() ?? false
   // Stable markup prevents context renders from replacing the SVG nodes used by the playhead.
   const markup = useMemo(() => ({ __html: art[projectId] }), [projectId])
+
+  useLayoutEffect(() => {
+    const svg = drawingRef.current?.querySelector('svg')
+    if (!svg || reduced) return
+    return attachPieceReactions(svg, projectId)
+  }, [projectId, reduced])
 
   useLayoutEffect(() => {
     const drawing = drawingRef.current
