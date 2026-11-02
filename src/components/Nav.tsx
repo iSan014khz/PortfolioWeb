@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
+import { useLenis } from 'lenis/react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion, type Variants } from 'motion/react';
 import { Container } from '@/components/Section';
@@ -6,7 +7,7 @@ import { useModal } from '@/components/ui/modal';
 
 const links = [
   { href: '#projects', label: 'Proyectos' },
-  { href: '#about', label: 'Acerca de' },
+  { href: '#why-me', label: 'Acerca de' },
   { href: '#footer', label: 'Contacto' },
 ];
 
@@ -42,6 +43,8 @@ const overlayVariants: Variants = {
 
 export default function Nav() {
   const [isOpen, setIsOpen] = useState(false);
+  const [destination, setDestination] = useState<string | null>(null);
+  const lenis = useLenis();
   const reduced = useReducedMotion() ?? false;
   const { target, titleId, panelProps, overlayProps } = useModal({
     open: isOpen,
@@ -54,6 +57,32 @@ export default function Nav() {
     desktop.addEventListener('change', closeOnDesktop);
     return () => desktop.removeEventListener('change', closeOnDesktop);
   }, []);
+
+  // Navigate after the mobile menu releases its scroll lock.
+  useEffect(() => {
+    if (!destination || isOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      const section = document.querySelector<HTMLElement>(destination);
+      if (section) {
+        // The footer is sticky: its bounding box is not the end of the document.
+        const top = destination === '#footer'
+          ? Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+          : window.scrollY + section.getBoundingClientRect().top;
+        window.history.pushState(null, '', destination);
+        if (lenis) lenis.scrollTo(top, { immediate: reduced, force: true });
+        else window.scrollTo({ top, behavior: reduced ? 'instant' : 'smooth' });
+      }
+      setDestination(null);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [destination, isOpen, lenis, reduced]);
+
+  const navigate = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    setIsOpen(false);
+    setDestination(href);
+  };
 
   const itemVariants: Variants = {
     hidden: {
@@ -98,6 +127,7 @@ export default function Nav() {
                 <li key={link.href}>
                   <a
                     href={link.href}
+                    onClick={event => navigate(event, link.href)}
                     className="font-display text-ui text-text transition-colors duration-200 hover:text-link"
                   >
                     {link.label}
@@ -151,7 +181,7 @@ export default function Nav() {
                 <motion.li key={link.href} variants={itemVariants} className="">
                   <motion.a
                     href={link.href}
-                    onClick={() => setIsOpen(false)}
+                    onClick={event => navigate(event, link.href)}
                     whileTap={reduced ? undefined : { scale: 0.98 }}
                     className="inline-block text-5xl md:text-6xl font-display text-text transition-colors duration-200 hover:text-link select-none"
                   >
