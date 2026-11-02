@@ -20,6 +20,9 @@ import {
   useScroll,
   useSpring,
 } from "motion/react";
+import { useLenis } from 'lenis/react';
+import { useModalAxisExpansion, type ModalOrigin } from './use-modal-axis-expansion';
+import './modal-axis.css';
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 const LEAVE = [0.4, 0, 1, 1] as const;
@@ -45,7 +48,7 @@ function focusableWithin(root: HTMLElement): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
     (el) =>
       el.tabIndex !== -1 &&
-      !el.hasAttribute("inert") &&
+      !el.closest("[inert]") &&
       el.getAttribute("aria-hidden") !== "true" &&
       el.getClientRects().length > 0,
   );
@@ -54,24 +57,29 @@ function focusableWithin(root: HTMLElement): HTMLElement[] {
 let locks = 0;
 let releaseLock: (() => void) | null = null;
 
-function lockDocumentScroll() {
+function lockDocumentScroll(engine?: ReturnType<typeof useLenis>) {
   locks += 1;
   if (locks > 1) return;
 
-  const body = document.body;
-  const gap = window.innerWidth - document.documentElement.clientWidth;
-  const overflow = body.style.overflow;
-  const paddingRight = body.style.paddingRight;
-  const base = Number.parseFloat(window.getComputedStyle(body).paddingRight);
+  // Keep body out of the scroll-container chain: overflow on body would
+  // re-anchor every sticky project as soon as the modal is mounted.
+  const root = document.documentElement;
+  const gap = window.innerWidth - root.clientWidth;
+  const overflow = root.style.overflow;
+  const paddingRight = root.style.paddingRight;
+  const base = Number.parseFloat(window.getComputedStyle(root).paddingRight);
+  const resumeEngine = engine && !engine.isStopped;
 
-  body.style.overflow = "hidden";
+  root.style.overflow = "hidden";
+  if (resumeEngine) engine.stop();
   if (gap > 0) {
-    body.style.paddingRight = `${(Number.isFinite(base) ? base : 0) + gap}px`;
+    root.style.paddingRight = `${(Number.isFinite(base) ? base : 0) + gap}px`;
   }
 
   releaseLock = () => {
-    body.style.overflow = overflow;
-    body.style.paddingRight = paddingRight;
+    if (resumeEngine) engine.start();
+    root.style.overflow = overflow;
+    root.style.paddingRight = paddingRight;
   };
 }
 
@@ -92,6 +100,7 @@ export type UseModalOptions = {
   lockScroll?: boolean;
   initialFocusRef?: RefObject<HTMLElement | null>;
   container?: HTMLElement | null;
+  returnFocusTo?: HTMLElement;
 };
 
 export type ModalOverlayProps = {
@@ -126,7 +135,9 @@ export function useModal({
   lockScroll = true,
   initialFocusRef,
   container,
+  returnFocusTo,
 }: UseModalOptions): UseModalResult {
+  const lenis = useLenis();
   const [target, setTarget] = useState<HTMLElement | null>(null);
 
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -148,9 +159,9 @@ export function useModal({
 
   useIsomorphicLayoutEffect(() => {
     if (!open || !lockScroll) return;
-    lockDocumentScroll();
+    lockDocumentScroll(lenis);
     return () => unlockDocumentScroll();
-  }, [open, lockScroll]);
+  }, [open, lockScroll, lenis]);
 
   useEffect(() => {
     if (!open || !target) return;
@@ -212,15 +223,15 @@ export function useModal({
     const panel = panelRef.current;
     if (!panel) return;
 
-    const previous =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previous = returnFocusTo ??
+      (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     const preferred = latest.current.initialFocusRef?.current;
     (preferred ?? focusableWithin(panel)[0] ?? panel).focus({ preventScroll: true });
 
     return () => {
       if (previous && previous.isConnected) previous.focus({ preventScroll: true });
     };
-  }, [open, target]);
+  }, [open, target, returnFocusTo]);
 
   const onKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key !== "Tab") return;
@@ -323,6 +334,7 @@ export type ModalProps = {
   maxWidth?: number | string;
   maxHeight?: string;
   className?: string;
+  expandFrom?: ModalOrigin;
 };
 
 interface ModalInnerProps {
@@ -344,6 +356,8 @@ interface ModalInnerProps {
   panelProps: ModalPanelProps;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   panelVariants: any;
+  expandFrom?: ModalOrigin;
+  backdropRef: RefObject<HTMLDivElement | null>;
 }
 
 function ModalInner({
@@ -364,8 +378,12 @@ function ModalInner({
   className,
   panelProps,
   panelVariants,
+  expandFrom,
+  backdropRef,
 }: ModalInnerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { surfaceRef, fillRef, glyphRef, expanding, contentLeaving } = useModalAxisExpansion(panelProps.ref, expandFrom, backdropRef);
+  const contentInert = expanding || contentLeaving;
 
   // useScroll conectado directamente cuando el contenedor ya está montado en el DOM
   const { scrollYProgress } = useScroll({
@@ -387,12 +405,22 @@ function ModalInner({
       data-lenis-prevent="true"
       aria-describedby={description ? descriptionId : undefined}
       variants={panelVariants}
+      data-expanding={expanding || undefined}
+      data-content-leaving={contentLeaving || undefined}
       style={{ maxWidth, maxHeight }}
-      className={`relative flex w-full max-h-[86vh] flex-col overflow-hidden rounded-panel border border-rule-default bg-surface-elevated text-text shadow-[0_32px_80px_-24px_rgba(0,0,0,0.95)] outline-none ${className}`}
+      className={`relative flex w-full max-h-[86vh] flex-col overflow-hidden rounded-panel border border-rule-default bg-surface-elevated text-text shadow-[0_32px_80px_-24px_rgba(0,0,0,0.95)] outline-none ${expandFrom ? 'modal-axis-panel' : ''} ${className}`}
     >
+      {expandFrom && <>
+        <div ref={surfaceRef} aria-hidden="true" className="modal-axis-surface">
+          <div ref={fillRef} className="modal-axis-fill" />
+        </div>
+        <div ref={glyphRef} aria-hidden="true" className="modal-axis-glyph">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25"><path d="M5 12h14M12 5v14" /></svg>
+        </div>
+      </>}
       {/* Header fijo superior con Título, Año y Botón de Cierre (si title existe) */}
       {title ? (
-        <div className="relative z-10 flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-4 sm:px-8 sm:pt-6 sm:pb-4 border-b border-rule-default">
+        <div data-modal-reveal inert={contentInert} className="relative z-10 flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-4 sm:px-8 sm:pt-6 sm:pb-4 border-b border-rule-default">
           <div className="min-w-0 flex-1">
             <h2
               id={titleId}
@@ -424,6 +452,7 @@ function ModalInner({
       ) : showClose ? (
         /* Botón de cierre flotante si title es null */
         <button
+          inert={contentInert}
           type="button"
           onClick={onClose}
           aria-label={closeLabel}
@@ -447,6 +476,8 @@ function ModalInner({
       {children ? (
         <div
           ref={scrollRef}
+          inert={contentInert}
+          data-modal-scroll
           data-lenis-prevent="true"
           style={{ overscrollBehavior: "none" }}
           className="relative z-10 min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden px-6 py-8 sm:px-10 sm:py-9 font-body text-body text-text/90"
@@ -472,7 +503,7 @@ function ModalInner({
 
       {/* Footer */}
       {footer ? (
-        <div className="relative z-10 flex shrink-0 items-center justify-end gap-3 border-t border-rule-subtle bg-surface-hover px-6 py-4 sm:px-8">
+        <div inert={contentInert} className="relative z-10 flex shrink-0 items-center justify-end gap-3 border-t border-rule-subtle bg-surface-hover px-6 py-4 sm:px-8">
           {footer}
         </div>
       ) : null}
@@ -500,17 +531,22 @@ export function Modal({
   maxWidth = 640,
   maxHeight = "min(88vh, 800px)",
   className = "",
+  expandFrom,
 }: ModalProps) {
   const reduced = useReducedMotion();
+  const [retained, setRetained] = useState(open);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (open) setRetained(true); }, [open]);
 
   const { target, titleId, descriptionId, overlayProps, panelProps } = useModal({
-    open,
+    open: open || retained,
     onClose,
     closeOnEscape,
     closeOnBackdrop,
     lockScroll,
     initialFocusRef,
     container,
+    returnFocusTo: expandFrom?.trigger,
   });
 
   const variants = useMemo(() => {
@@ -525,6 +561,20 @@ export function Modal({
           closed: { opacity: 0 },
           open: { opacity: 1, transition: { duration: 0 } },
           gone: { opacity: 0, transition: { duration: 0 } },
+        },
+      };
+    }
+    if (expandFrom) {
+      return {
+        backdrop: {
+          closed: { opacity: 1 },
+          open: { opacity: 1 },
+          gone: { opacity: 1 },
+        },
+        panel: {
+          closed: { opacity: 1 },
+          open: { opacity: 1 },
+          gone: { opacity: 1 },
         },
       };
     }
@@ -550,12 +600,12 @@ export function Modal({
         },
       },
     };
-  }, [reduced]);
+  }, [reduced, expandFrom]);
 
   if (!target) return null;
 
   return createPortal(
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={() => setRetained(false)}>
       {open ? (
         <motion.div
           key="modal"
@@ -564,14 +614,16 @@ export function Modal({
           animate="open"
           exit="gone"
           variants={{ closed: {}, open: {}, gone: {} }}
+          data-lenis-prevent="true"
           className="fixed inset-0 z-50 grid place-items-center p-4 sm:p-6"
         >
-          {/* Backdrop con desenfoque de cristal */}
+          {/* The project morph keeps the page sharp, dimming it only during Y expansion. */}
           <motion.div
             aria-hidden="true"
+            ref={backdropRef}
             variants={variants.backdrop}
             style={{ touchAction: "none" }}
-            className="absolute inset-0 bg-black/75 backdrop-blur-xl"
+            className={expandFrom ? 'modal-axis-backdrop absolute inset-0 bg-black/55' : 'absolute inset-0 bg-black/75 backdrop-blur-xl'}
           />
 
           {/* Panel interno que monta y enlaza useScroll al abrirse */}
@@ -593,6 +645,8 @@ export function Modal({
             className={className}
             panelProps={panelProps}
             panelVariants={variants.panel}
+            expandFrom={expandFrom}
+            backdropRef={backdropRef}
           />
         </motion.div>
       ) : null}

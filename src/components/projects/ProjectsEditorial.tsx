@@ -8,13 +8,14 @@ import useProjectReveal from './useProjectReveal'
 import './projects.css'
 import { editorialProjects, projectPresentation } from './content'
 import ProjectCase from './ProjectCase'
+import type { ModalOrigin } from '@/components/ui/use-modal-axis-expansion'
 import type { IsometricId } from './isometrics/IsometricProject'
 
 const IsometricProject = lazy(() => import('./isometrics/IsometricProject'))
 
 function ProjectEntry({ project, onOpen }: {
   project: Project
-  onOpen: (project: Project) => void
+  onOpen: (project: Project, origin: ModalOrigin) => void
 }) {
   const ref = useRef<HTMLElement>(null)
   const [nearViewport, setNearViewport] = useState(false)
@@ -78,12 +79,15 @@ function ProjectEntry({ project, onOpen }: {
           type="button"
           aria-label={`Ver caso de ${project.name}`}
           aria-haspopup="dialog"
-          onClick={() => onOpen(project)}
-          className="inline-flex min-h-11 cursor-pointer items-center gap-2 font-body text-ui text-text underline decoration-rule-strong underline-offset-4 transition-colors duration-150 hover:text-link hover:decoration-link"
+          onClick={event => {
+            const trigger = event.currentTarget
+            const { left, top, width, height } = trigger.getBoundingClientRect()
+            onOpen(project, { left, top, width, height, trigger })
+          }}
+          className="project-case-trigger"
         >
-          Ver caso
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-            <path d="M5 12h14m-6-6 6 6-6 6" />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" aria-hidden="true">
+            <path d="M5 12h14M12 5v14" />
           </svg>
         </motion.button>
         <TechnologyLogos progress={entrance} technologies={project.stack} label={`Tecnologías de ${project.name}`} />
@@ -94,7 +98,13 @@ function ProjectEntry({ project, onOpen }: {
 }
 
 export default function ProjectsEditorial({ preview = false }: { preview?: boolean }) {
-  const [selected, setSelected] = useState<Project | null>(null)
+  const [selected, setSelected] = useState<{ project: Project; origin: ModalOrigin } | null>(null)
+  const [caseOpen, setCaseOpen] = useState(false)
+
+  const openCase = (project: Project, origin: ModalOrigin) => {
+    setSelected({ project, origin })
+    setCaseOpen(true)
+  }
 
   return (
     <Section id="projects" className={preview ? 'projects-editorial projects-editorial-preview' : 'projects-editorial'}>
@@ -102,10 +112,10 @@ export default function ProjectsEditorial({ preview = false }: { preview?: boole
         <ScrollReveal as="h2" className="mb-8 font-contrast text-section font-normal tracking-editorial sm:mb-10">Proyectos</ScrollReveal>
         <div className="project-scroll-list">
           {editorialProjects.map(project => (
-            <ProjectEntry key={project.id} project={project} onOpen={setSelected} />
+            <ProjectEntry key={project.id} project={project} onOpen={openCase} />
           ))}
         </div>
-        {selected && <ProjectCase key={selected.id} project={selected} typography="editorial" onClose={() => setSelected(null)} />}
+        {selected && <ProjectCase key={selected.project.id} project={selected.project} open={caseOpen} expandFrom={selected.origin} typography="editorial" onClose={() => setCaseOpen(false)} />}
       </Container>
     </Section>
   )

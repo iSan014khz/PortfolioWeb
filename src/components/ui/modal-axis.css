@@ -1,0 +1,68 @@
+/* The viewport-sized layers share one rounded clip. Neither the border nor the
+   content is scaled, and the circle never hands off to a different background. */
+.modal-axis-surface,
+.modal-axis-fill {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: var(--color-rule-default);
+  clip-path: inset(50% round 22px);
+}
+.modal-axis-surface { z-index: 0; }
+.modal-axis-fill { background: var(--color-bg); }
+.modal-axis-glyph {
+  position: fixed;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transform-origin: center;
+}
+.modal-axis-panel[role='dialog'] {
+  --modal-axis-exit-y-duration: 420ms;
+  --modal-axis-exit-x-duration: 350ms;
+  --modal-content-exit-duration: 180ms;
+  --modal-content-exit-stagger: 40ms;
+  overflow: visible;
+  background: transparent;
+  border-color: transparent;
+}
+.modal-axis-panel > :not(.modal-axis-surface):not(.modal-axis-glyph):not([data-modal-reveal]) {
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.modal-axis-panel[data-expanding='true'] { box-shadow: none; }
+.modal-axis-panel[data-expanding='true'] > :not(.modal-axis-surface):not(.modal-axis-glyph) {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Only the reading blocks move; the fixed shell and its measured layout stay put. */
+.modal-axis-panel [data-modal-reveal] {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--duration-slow) var(--ease-out),
+    transform var(--duration-slow) var(--ease-out);
+  transition-delay: calc(var(--modal-reveal-order, 0) * var(--duration-normal) / 2);
+}
+.modal-axis-panel[data-expanding='true'] [data-modal-reveal] {
+  opacity: 0;
+  transform: translateY(12px);
+  transition-duration: var(--duration-fast);
+  transition-delay: 0ms;
+}
+.modal-axis-panel[data-content-leaving='true'] [data-modal-reveal] {
+  opacity: 0;
+  transform: translateY(12px);
+  transition-duration: var(--modal-content-exit-duration);
+  transition-delay: calc(var(--modal-exit-order, 0) * var(--modal-content-exit-stagger));
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-axis-panel[role='dialog'] { overflow: hidden; background: var(--color-bg); border-color: var(--color-rule-default); }
+  .modal-axis-surface, .modal-axis-glyph { display: none; }
+  .modal-axis-panel [data-modal-reveal] {
+    transform: none;
+    transition-duration: var(--duration-fast);
+    transition-delay: 0ms;
+  }
+}

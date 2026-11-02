@@ -9,11 +9,14 @@ type TextSegment = {
 
 const segments: TextSegment[] = [
   {
-    text: 'Hoy navegaste por decenas de sitios web. Mañana no te vas a acordar de ninguno. La mayoría de las páginas se sienten iguales: cumplen con funcionar, pero se olvidan al segundo. Me gusta construir cosas distintas, uniendo la ingeniería de software con el cuidado por el diseño y el movimiento para crear experiencias que ',
+    text: 'Me interesa el tiempo que puedes recuperar cuando algo puede funcionar mejor. Por eso busco oportunidades de automatización y construyo interfaces que simplifican lo cotidiano. Cuido cada detalle para ',
   },
   {
-    text: 'se sientan vivas.',
+    text: 'simplificar tu trabajo',
     className: 'font-contrast',
+  },
+  {
+    text: ', ahorrarte tiempo y ayudarte a reducir costos.',
   },
 ]
 

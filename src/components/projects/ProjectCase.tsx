@@ -1,6 +1,7 @@
-import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import type { Project } from '@/data/projects'
 import { Modal } from '@/components/ui/modal'
+import type { ModalOrigin } from '@/components/ui/use-modal-axis-expansion'
 import TechBadge from '@/components/TechBadge'
 import { projectPresentation } from './content'
 import './case-typography.css'
@@ -42,11 +43,13 @@ const sectionTitles: Record<string, { problem: string; result: string; work: str
   },
 }
 
-export default function ProjectCase({ project, onClose, typography = 'current', previewControls }: {
+export default function ProjectCase({ project, onClose, typography = 'current', previewControls, open = true, expandFrom }: {
   project: Project
   onClose: () => void
   typography?: CaseTypography
   previewControls?: ReactNode
+  open?: boolean
+  expandFrom?: ModalOrigin
 }) {
   const presentation = projectPresentation[project.id]
   const copy = context[project.id]
@@ -54,28 +57,32 @@ export default function ProjectCase({ project, onClose, typography = 'current', 
   const yearParts = project.year.split(/\s+[—–-]\s+/)
   const roleParts = presentation?.role.split(/[·•|]/).map(part => part.trim()) ?? []
   const articleRef = useRef<HTMLElement>(null)
+  const reveal = (order: number) => ({
+    'data-modal-reveal': true,
+    style: { '--modal-reveal-order': order } as CSSProperties,
+  })
   useLayoutEffect(() => {
     if (typography !== 'current') articleRef.current?.parentElement?.parentElement?.scrollTo({ top: 0 })
   }, [typography, project.id])
   return (
-    <Modal open onClose={onClose} title={project.name} description={<span className="case-type-meta"><span className="case-type-year">{yearParts.map(part => <span key={part}>{part}</span>)}</span><span className="case-type-role">{roleParts.map(part => <span key={part}>{part}</span>)}</span></span>} maxWidth={800} maxHeight="min(92dvh, 960px)" className={`project-case-modal case-type-${typography}`} showScrollProgress={false} footer={previewControls}>
+    <Modal open={open} expandFrom={expandFrom} onClose={onClose} title={project.name} description={<span className="case-type-meta"><span className="case-type-year">{yearParts.map(part => <span key={part}>{part}</span>)}</span><span className="case-type-role">{roleParts.map(part => <span key={part}>{part}</span>)}</span></span>} maxWidth={800} maxHeight="min(92dvh, 960px)" className={`project-case-modal case-type-${typography}`} showScrollProgress={false} footer={previewControls}>
       <article ref={articleRef} className="project-case font-body">
-        <header className="project-case-intro">
+        <header {...reveal(1)} className="project-case-intro">
           <p className="project-case-lead">{presentation?.summary ?? project.subtitle}</p>
           {project.link && <a className="project-case-site" href={project.link} target="_blank" rel="noopener noreferrer">Ver sitio <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg></a>}
         </header>
-        <figure className="project-case-image">
+        <figure {...reveal(2)} className="project-case-image">
           <img src={project.imageUrl} alt={`Captura de ${project.name}`} width={presentation?.width} height={presentation?.height} />
         </figure>
-        <section className="project-case-section">
+        <section {...reveal(3)} className="project-case-section">
           <h3>{titles?.problem ?? 'El punto de partida'}</h3>
           <p>{copy?.problem ?? project.description}</p>
         </section>
-        <section className="project-case-section">
+        <section {...reveal(4)} className="project-case-section">
           <h3>{titles?.result ?? 'La solución'}</h3>
           <p>{copy?.result ?? project.description}</p>
         </section>
-        <section className="project-case-section">
+        <section {...reveal(5)} className="project-case-section">
           <h3>{titles?.work ?? project.detailsTitle ?? 'Cómo lo desarrollé'}</h3>
           <ul className="project-case-decisions">
             {project.details.map(detail => {
@@ -84,7 +91,7 @@ export default function ProjectCase({ project, onClose, typography = 'current', 
             })}
           </ul>
         </section>
-        <section className="project-case-section">
+        <section {...reveal(6)} className="project-case-section">
           <h3>Tecnologías del proyecto</h3>
           <ul className="project-case-badges" aria-label={`Tecnologías de ${project.name}`}>
             {project.stack.map(tech => <li key={tech}><TechBadge tech={tech} /></li>)}
