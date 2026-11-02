@@ -142,6 +142,7 @@ export default function WhyMe() {
                 <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center pointer-events-none px-5 sm:px-8 md:px-gutter z-20">
                     <SvgTextZoom
                         boundedViewport
+                        renderer="canvas"
                         {...TITLE_PRESETS[TITLE_ANIMATION]}
                         progress={smoothProgress}
                         fadeScrollRange={[0.30, 0.4]}

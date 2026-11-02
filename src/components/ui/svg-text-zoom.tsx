@@ -1,3 +1,4 @@
+import CanvasTitle from './canvas-text-zoom'
 import React, { useRef, useLayoutEffect, useState, useId } from "react"
 import {
   motion,
@@ -10,6 +11,8 @@ import {
 import { cn } from "@/lib/utils"
 
 export interface SvgTextZoomProps {
+  /** Canvas clears and redraws the convergence title to avoid SVG repaint trails. */
+  renderer?: "svg" | "canvas"
   /** Paint the zoom inside a stable viewport, avoiding Safari overflow trails. */
   boundedViewport?: boolean
   /** Conserva la entrada original; editorial revela dos grupos sin dispersar las letras. */
@@ -331,6 +334,7 @@ function ConvergenceChar({ item, progress, reduced, className }: {
 export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
   entryStyle = "original",
   boundedViewport = false,
+  renderer = "svg",
   text,
   className,
   svgClassName,
@@ -592,12 +596,12 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
   return (
     <motion.div ref={viewportRef} style={{ filter: shouldReduceMotion ? "none" : exitBlurFilter }} className={cn("relative z-20 flex w-full pointer-events-none isolate", className)}>
       <motion.svg
-        viewBox={shouldReduceMotion && !boundedViewport ? staticViewBox : viewBox}
+        viewBox={renderer === "canvas" || (shouldReduceMotion && !boundedViewport) ? staticViewBox : viewBox}
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label={text}
         style={{
-          opacity: textOpacity,
+          opacity: renderer === "canvas" ? 0 : textOpacity,
           visibility: svgDisplay,
           ...(boundedViewport ? {
             position: 'absolute' as const,
@@ -629,7 +633,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
           {text}
         </text>
 
-        {entryStyle === "convergence" && measuredChars.length > 0 ? (
+        {renderer === "canvas" ? null : entryStyle === "convergence" && measuredChars.length > 0 ? (
           <g aria-hidden="true">
             {measuredChars.map((item) => <ConvergenceChar key={item.index} item={item} progress={progress}
               reduced={shouldReduceMotion ?? false} className={textClassName} />)}
@@ -741,6 +745,10 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
           </motion.text>
         )}
       </motion.svg>
+      {renderer === 'canvas' && <CanvasTitle items={measuredChars} progress={progress}
+        camera={viewBox} opacity={textOpacity} reduced={shouldReduceMotion ?? false}
+        measureRef={measureTextRef} textClassName={textClassName} hideThreshold={effectiveHideThreshold} />}
+
     </motion.div>
   )
 }
