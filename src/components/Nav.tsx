@@ -11,6 +11,8 @@ const links = [
   { href: '#footer', label: 'Contacto' },
 ];
 
+const menuLinks = [links[0], { href: '#skills', label: 'Habilidades' }, ...links.slice(1)];
+
 const overlayVariants: Variants = {
   hidden: {
     opacity: 0,
@@ -65,9 +67,12 @@ export default function Nav() {
       const section = document.querySelector<HTMLElement>(destination);
       if (section) {
         // The footer is sticky: its bounding box is not the end of the document.
-        const top = destination === '#footer'
+        let top = destination === '#footer'
           ? Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
           : window.scrollY + section.getBoundingClientRect().top;
+        if (destination === '#why-me') {
+          top += Math.max(0, section.offsetHeight - window.innerHeight) * 0.94;
+        }
         window.history.pushState(null, '', destination);
         if (lenis) lenis.scrollTo(top, { immediate: reduced, force: true });
         else window.scrollTo({ top, behavior: reduced ? 'instant' : 'smooth' });
@@ -177,7 +182,7 @@ export default function Nav() {
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m3 3 14 14M17 3 3 17" /></svg>
             </button>
             <motion.ul className="mx-auto flex w-full max-w-page flex-col gap-6">
-              {links.map((link) => (
+              {menuLinks.map((link) => (
                 <motion.li key={link.href} variants={itemVariants} className="">
                   <motion.a
                     href={link.href}
