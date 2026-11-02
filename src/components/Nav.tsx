@@ -1,9 +1,10 @@
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useLenis } from 'lenis/react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion, type Variants } from 'motion/react';
 import { Container } from '@/components/Section';
 import { useModal } from '@/components/ui/modal';
+import './nav.css';
 
 const links = [
   { href: '#projects', label: 'Proyectos' },
@@ -45,6 +46,8 @@ const overlayVariants: Variants = {
 
 export default function Nav() {
   const [isOpen, setIsOpen] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
   const [destination, setDestination] = useState<string | null>(null);
   const lenis = useLenis();
   const reduced = useReducedMotion() ?? false;
@@ -59,6 +62,43 @@ export default function Nav() {
     desktop.addEventListener('change', closeOnDesktop);
     return () => desktop.removeEventListener('change', closeOnDesktop);
   }, []);
+
+  // Accumulate travel in one direction so small touch corrections do not toggle navigation.
+  useEffect(() => {
+    let previous = window.scrollY;
+    let travel = 0;
+    let direction = 0;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const maximum = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      const current = Math.max(0, Math.min(window.scrollY, maximum));
+      const delta = current - previous;
+      previous = current;
+      if (isOpen || navRef.current?.closest('[inert]')) {
+        travel = 0;
+        return;
+      }
+      const height = navRef.current?.offsetHeight ?? 70;
+      if (current <= height) {
+        setHidden(false);
+        travel = 0;
+        return;
+      }
+      if (Math.abs(delta) < 0.5) return;
+      const nextDirection = Math.sign(delta);
+      travel = nextDirection === direction ? travel + Math.abs(delta) : Math.abs(delta);
+      direction = nextDirection;
+      if (direction < 0 && travel >= 48) setHidden(false);
+      if (direction > 0 && current > height * 2 && travel >= 80) setHidden(true);
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(update); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [isOpen]);
 
   // Navigate after the mobile menu releases its scroll lock.
   useEffect(() => {
@@ -120,7 +160,7 @@ export default function Nav() {
 
   return (
     <>
-      <nav aria-label="Navegación principal" className="relative z-40 flex h-nav-height w-full items-center px-5 sm:px-8 md:px-gutter border-b border-rule-default bg-bg">
+      <nav ref={navRef} data-hidden={hidden && !isOpen} aria-label="Navegación principal" className="site-nav sticky top-0 shrink-0 z-40 flex h-nav-height w-full items-center px-5 sm:px-8 md:px-gutter border-b border-rule-default bg-bg">
         <Container className="flex items-center justify-between">
           <span className="w-[50%] text-xl lg:text-2xl font-body text-text">Santiago Palma</span>
           <div className="flex w-[50%] items-center justify-end">
@@ -178,7 +218,7 @@ export default function Nav() {
           >
             <div {...panelProps} id="primary-menu" className="relative flex h-full w-full flex-col justify-center px-5 sm:px-8 outline-none">
             <h2 id={titleId} className="sr-only">Menú de navegación</h2>
-            <button type="button" onClick={() => setIsOpen(false)} aria-label="Cerrar menú" className="absolute right-5 top-[22px] grid size-11 cursor-pointer place-items-center text-text hover:text-link sm:right-8">
+            <button type="button" onClick={() => setIsOpen(false)} aria-label="Cerrar menú" style={{ top: 'calc((var(--spacing-nav-height) - 44px) / 2)' }} className="absolute right-5 grid size-11 cursor-pointer place-items-center text-text hover:text-link sm:right-8">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m3 3 14 14M17 3 3 17" /></svg>
             </button>
             <motion.ul className="mx-auto flex w-full max-w-page flex-col gap-6">

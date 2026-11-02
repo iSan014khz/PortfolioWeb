@@ -270,3 +270,8 @@ body {
     opacity: 1;
   }
 }
+
+/* Keep the hero and header on the same mobile height. */
+@media (max-width: 1023px) {
+  :root { --spacing-nav-height: 70px; }
+}
