@@ -14,45 +14,39 @@ const links = [
 
 const menuLinks = [links[0], { href: '#skills', label: 'Habilidades' }, ...links.slice(1)];
 
-const overlayVariants: Variants = {
-  hidden: {
-    opacity: 0,
-    transition: {
-      duration: 0.15,
-      ease: [0.32, 0.72, 0, 1],
-      when: 'afterChildren',
-    },
-  },
-  visible: {
-    opacity: 1,
-    transition: {
-      duration: 0.18,
-      ease: [0.23, 1, 0.32, 1],
-      when: 'beforeChildren',
-      staggerChildren: 0.04,
-      delayChildren: 0.02,
-    },
-  },
-  exit: {
-    opacity: 0,
-    transition: {
-      duration: 0.15,
-      ease: [0.32, 0.72, 0, 1],
-      staggerChildren: 0.02,
-      staggerDirection: -1,
-    },
-  },
-};
+const overlayVariants: Variants = { hidden: {}, visible: {}, exit: {} };
+
+function MenuToggle({ open, reduced, onClick, hidden = false }: {
+  open: boolean; reduced: boolean; onClick: () => void; hidden?: boolean;
+}) {
+  return <motion.button type="button" aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+    aria-expanded={open} aria-controls={open ? 'primary-menu' : undefined}
+    className="group relative size-11 cursor-pointer lg:hidden"
+    style={{ visibility: hidden ? 'hidden' : 'visible' }}
+    initial={{ transform: 'rotate(0deg)', color: 'var(--color-text)' }}
+    animate={{ transform: open ? 'rotate(45deg)' : 'rotate(0deg)', color: open ? 'var(--color-link)' : 'var(--color-text)' }}
+    exit={{ transform: 'rotate(0deg)', color: 'var(--color-text)' }}
+    transition={reduced ? { duration: 0 } : {
+      transform: { type: 'spring', duration: 0.5, bounce: 0.2 },
+      color: { duration: 0.28, ease: [0.23, 1, 0.32, 1] },
+    }}
+    onClick={onClick}>
+    <span aria-hidden="true" className="absolute left-1/2 top-1/2 h-5 w-0.5 -translate-x-1/2 -translate-y-1/2 bg-current" />
+    <span aria-hidden="true" className="absolute left-1/2 top-1/2 h-0.5 w-5 -translate-x-1/2 -translate-y-1/2 bg-current" />
+  </motion.button>;
+}
 
 export default function Nav() {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuPresent, setMenuPresent] = useState(false);
+  useEffect(() => { if (isOpen) setMenuPresent(true); }, [isOpen]);
   const [hidden, setHidden] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const [destination, setDestination] = useState<string | null>(null);
   const lenis = useLenis();
   const reduced = useReducedMotion() ?? false;
   const { target, titleId, panelProps, overlayProps } = useModal({
-    open: isOpen,
+    open: isOpen || menuPresent,
     onClose: () => setIsOpen(false),
   });
 
@@ -107,7 +101,7 @@ export default function Nav() {
 
   // Navigate after the mobile menu releases its scroll lock.
   useEffect(() => {
-    if (!destination || isOpen) return;
+    if (!destination || isOpen || menuPresent) return;
     const frame = window.requestAnimationFrame(() => {
       const section = document.querySelector<HTMLElement>(destination);
       if (section) {
@@ -125,7 +119,7 @@ export default function Nav() {
       setDestination(null);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [destination, isOpen, lenis, reduced]);
+  }, [destination, isOpen, menuPresent, lenis, reduced]);
 
   const navigate = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -135,32 +129,9 @@ export default function Nav() {
   };
 
   const itemVariants: Variants = {
-    hidden: {
-      opacity: 0,
-      y: reduced ? 0 : 14,
-      filter: reduced ? 'none' : 'blur(3px)',
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      filter: 'blur(0px)',
-      transition: {
-        type: 'spring',
-        stiffness: 420,
-        damping: 28,
-        mass: 0.65,
-        filter: { duration: 0.15, ease: [0.23, 1, 0.32, 1] },
-      },
-    },
-    exit: {
-      opacity: 0,
-      y: reduced ? 0 : -8,
-      filter: reduced ? 'none' : 'blur(2px)',
-      transition: {
-        duration: 0.12,
-        ease: [0.32, 0.72, 0, 1],
-      },
-    },
+    hidden: { opacity: 0, y: reduced ? 0 : 14, filter: reduced ? 'none' : 'blur(3px)' },
+    visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: reduced ? 0 : 0.24, ease: [0.23, 1, 0.32, 1] } },
+    exit: { opacity: 0, y: reduced ? 0 : 14, filter: reduced ? 'none' : 'blur(3px)', transition: { duration: reduced ? 0 : 0.24, ease: [0.23, 1, 0.32, 1] } },
   };
 
   return (
@@ -198,47 +169,32 @@ export default function Nav() {
               ))}
             </ul>
 
-            <motion.button
-              type="button"
-              aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
-              aria-expanded={isOpen}
-              aria-controls={isOpen ? 'primary-menu' : undefined}
-              className="group relative size-11 cursor-pointer lg:hidden"
-              onClick={() => setIsOpen(!isOpen)}
-              animate={{ rotate: reduced ? 0 : isOpen ? 45 : 0 }}
-              transition={{ type: "spring", stiffness: 500, damping: 15, mass: 1 }}
-            >
-              <span
-                aria-hidden="true"
-                className={`absolute left-1/2 top-3 h-5 w-0.5 -translate-x-1/2 transition-colors duration-200 ${isOpen ? "bg-link" : "bg-text group-hover:bg-link"
-                  }`}
-              />
-              <span
-                aria-hidden="true"
-                className={`absolute left-3 top-1/2 h-0.5 w-5 -translate-y-1/2 transition-colors duration-200 ${isOpen ? "bg-link" : "bg-text group-hover:bg-link"
-                  }`}
-              />
-            </motion.button>
+            <MenuToggle open={isOpen} reduced={reduced} hidden={isOpen || menuPresent} onClick={() => setIsOpen(true)} />
           </div>
         </Container>
       </motion.nav>
-      {target && createPortal(<AnimatePresence>
+      {target && createPortal(<AnimatePresence onExitComplete={() => setMenuPresent(false)}>
         {isOpen && (
           <motion.div
             {...overlayProps}
             data-lenis-prevent="true"
-            className="fixed inset-0 h-dvh w-full bg-bg/95 backdrop-blur-xl z-60 lg:hidden"
+            className="fixed inset-0 h-dvh w-full z-60 lg:hidden"
             initial="hidden"
             animate="visible"
             exit="exit"
             variants={overlayVariants}
           >
+            <motion.div aria-hidden="true" className="absolute inset-0 bg-bg/95 backdrop-blur-xl"
+              variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: reduced ? 0 : 0.22, ease: [0.23, 1, 0.32, 1] } }, exit: { opacity: 0, transition: { delay: reduced ? 0 : 0.41, duration: reduced ? 0 : 0.22, ease: [0.23, 1, 0.32, 1] } } }} />
             <div {...panelProps} id="primary-menu" className="relative flex h-full w-full flex-col justify-center px-5 sm:px-8 outline-none">
             <h2 id={titleId} className="sr-only">Menú de navegación</h2>
-            <button type="button" onClick={() => setIsOpen(false)} aria-label="Cerrar menú" style={{ top: 'calc((var(--spacing-nav-height) - 44px) / 2)' }} className="absolute right-5 grid size-11 cursor-pointer place-items-center text-text hover:text-link sm:right-8">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m3 3 14 14M17 3 3 17" /></svg>
-            </button>
-            <motion.ul className="mx-auto flex w-full max-w-page flex-col gap-6">
+            <div className="absolute inset-x-0 top-0 flex h-nav-height items-center px-5 sm:px-8 md:px-gutter">
+              <Container className="flex justify-end">
+                <MenuToggle open={isOpen} reduced={reduced} onClick={() => setIsOpen(value => !value)} />
+              </Container>
+            </div>
+            <motion.ul className="mx-auto flex w-full max-w-page flex-col gap-6"
+              variants={{ hidden: {}, visible: { transition: { delayChildren: reduced ? 0 : 0.08, staggerChildren: reduced ? 0 : 0.055 } }, exit: { transition: { staggerChildren: reduced ? 0 : 0.055, staggerDirection: -1 } } }}>
               {menuLinks.map((link) => (
                 <motion.li key={link.href} variants={itemVariants} className="">
                   <motion.a

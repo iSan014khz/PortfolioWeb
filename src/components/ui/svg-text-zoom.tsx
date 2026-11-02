@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils"
 
 export interface SvgTextZoomProps {
+  entryProgress?: MotionValue<number>
   /** Canvas clears and redraws the convergence title to avoid SVG repaint trails. */
   renderer?: "svg" | "canvas"
   /** Paint the zoom inside a stable viewport, avoiding Safari overflow trails. */
@@ -345,6 +346,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
   offsetY = 0,
   align = "left",
   progress,
+  entryProgress = progress,
   zoomScrollRange = [0, 0.65],
   fadeScrollRange = [0.55, 0.75],
   maxBlur = 8,
@@ -745,7 +747,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
           </motion.text>
         )}
       </motion.svg>
-      {renderer === 'canvas' && <CanvasTitle items={measuredChars} progress={progress}
+      {renderer === 'canvas' && <CanvasTitle items={measuredChars} progress={progress} entryProgress={entryProgress}
         camera={viewBox} opacity={textOpacity} reduced={shouldReduceMotion ?? false}
         measureRef={measureTextRef} textClassName={textClassName} hideThreshold={effectiveHideThreshold} />}
 

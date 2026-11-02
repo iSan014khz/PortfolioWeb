@@ -85,6 +85,16 @@ export default function WhyMe() {
         offset: ["start start", "end end"]
     });
 
+    // Begin the entrance 15% of a viewport earlier, while Skills is still leaving.
+    // Before this threshold progress stays zero, so the title stays fully hidden.
+    const { scrollYProgress: titleEntryProgress } = useScroll({
+        target: sectionRef,
+        offset: ["start 15%", "end 115%"]
+    });
+    const smoothTitleEntry = useSpring(titleEntryProgress, {
+        stiffness: 220, damping: 28, mass: 0.5, restDelta: 0.001
+    });
+
     // 2. Físicas suaves (useSpring) aplicadas al progreso del scroll general
     const smoothProgress = useSpring(scrollYProgress, {
         stiffness: 220,
@@ -137,12 +147,13 @@ export default function WhyMe() {
         >
             <h2 id="why-me-heading" className="sr-only">¿Por qué yo?</h2>
             {/* Contenedor sticky que mantiene la vista fija mientras el usuario recorre la animación */}
-            <div className="sticky top-0 h-svh w-full flex flex-col justify-center items-center overflow-hidden px-5 sm:px-8 md:px-gutter py-8 sm:py-12">
+            <div className="sticky top-0 h-dvh w-full flex flex-col justify-center items-center overflow-hidden px-5 sm:px-8 md:px-gutter py-8 sm:py-12">
                 {/* Capa de SvgTextZoom para 'Porqué yo?' con super-zoom que atraviesa la letra 'o' */}
                 <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center pointer-events-none px-5 sm:px-8 md:px-gutter z-20">
                     <SvgTextZoom
                         boundedViewport
                         renderer="canvas"
+                        entryProgress={smoothTitleEntry}
                         {...TITLE_PRESETS[TITLE_ANIMATION]}
                         progress={smoothProgress}
                         fadeScrollRange={[0.30, 0.4]}

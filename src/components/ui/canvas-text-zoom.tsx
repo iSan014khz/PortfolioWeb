@@ -2,9 +2,10 @@ import { useLayoutEffect, useRef, type RefObject } from 'react'
 import type { MotionValue } from 'motion/react'
 
 type Item = { char: string; index: number; x: number; y: number }
-export default function CanvasTitle({ items, progress, camera, opacity, reduced, measureRef, textClassName, hideThreshold }: {
+export default function CanvasTitle({ items, progress, entryProgress, camera, opacity, reduced, measureRef, textClassName, hideThreshold }: {
   items: Item[]
   progress: MotionValue<number>
+  entryProgress: MotionValue<number>
   camera: MotionValue<string>
   opacity: MotionValue<number>
   reduced: boolean
@@ -63,7 +64,7 @@ export default function CanvasTitle({ items, progress, camera, opacity, reduced,
       context.textAlign = 'left'
       context.textBaseline = 'alphabetic'
       for (const item of items) {
-        const t = Math.max(0, Math.min(1, (p - item.index * 0.002) / 0.055))
+        const t = Math.max(0, Math.min(1, (entryProgress.get() - item.index * 0.002) / 0.055))
         const entry = 1 - Math.pow(1 - t, 3)
         const size = reduced ? 1 : 1 + 0.22 * (1 - entry)
         const dx = reduced ? 0 : (item.x - 500) * 0.65 * (1 - entry)
@@ -80,7 +81,7 @@ export default function CanvasTitle({ items, progress, camera, opacity, reduced,
     configureFont()
     schedule()
     void document.fonts.ready.then(() => { if (!cancelled) { configureFont(); schedule() } })
-    const unsubscribe = [progress.on('change', schedule), camera.on('change', schedule), opacity.on('change', schedule)]
+    const unsubscribe = [entryProgress.on('change', schedule), progress.on('change', schedule), camera.on('change', schedule), opacity.on('change', schedule)]
     const observer = new ResizeObserver(schedule)
     observer.observe(canvas)
     window.addEventListener('resize', schedule)
@@ -91,7 +92,7 @@ export default function CanvasTitle({ items, progress, camera, opacity, reduced,
       observer.disconnect()
       window.removeEventListener('resize', schedule)
     }
-  }, [items, progress, camera, opacity, reduced, measureRef, hideThreshold])
+  }, [items, progress, entryProgress, camera, opacity, reduced, measureRef, hideThreshold])
   return <canvas ref={ref} aria-hidden="true" className={textClassName} style={{
     position: 'absolute', top: 0, left: '50%', width: '100vw', height: '100%',
     transform: 'translateX(-50%)', pointerEvents: 'none',

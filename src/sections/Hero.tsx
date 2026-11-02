@@ -84,7 +84,7 @@ export default function Hero() {
 
       <Container className="pointer-events-none relative z-10">
         <p className="hero-intro-copy max-w-xs md:max-w-sm lg:max-w-md font-display text-[15px] md:text-base lg:text-lg font-semibold leading-snug tracking-editorial text-text -mt-2.5">
-          Transformo tus <span className="text-text font-display">ideas</span> en experiencias memorables.
+          Una experiencia que te represente. Más eficiencia en menos pasos.
         </p>
       </Container>
 
