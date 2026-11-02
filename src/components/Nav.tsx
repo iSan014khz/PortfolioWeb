@@ -85,6 +85,11 @@ export default function Nav() {
         travel = 0;
         return;
       }
+      if (navRef.current?.querySelector(':focus-visible')) {
+        setHidden(false);
+        travel = 0;
+        return;
+      }
       if (Math.abs(delta) < 0.5) return;
       const nextDirection = Math.sign(delta);
       travel = nextDirection === direction ? travel + Math.abs(delta) : Math.abs(delta);
@@ -160,7 +165,15 @@ export default function Nav() {
 
   return (
     <>
-      <nav ref={navRef} data-hidden={hidden && !isOpen} aria-label="Navegación principal" className="site-nav sticky top-0 shrink-0 z-40 flex h-nav-height w-full items-center px-5 sm:px-8 md:px-gutter border-b border-rule-default bg-bg">
+      <motion.nav
+        ref={navRef}
+        initial={false}
+        animate={{ transform: hidden && !isOpen ? 'translateY(-100%)' : 'translateY(0%)' }}
+        transition={reduced ? { duration: 0 } : { type: 'spring', duration: 0.5, bounce: 0 }}
+        onFocusCapture={event => {
+          if (event.target.matches(':focus-visible')) setHidden(false);
+        }}
+        data-hidden={hidden && !isOpen} aria-label="Navegación principal" className="site-nav sticky top-0 shrink-0 z-40 flex h-nav-height w-full items-center px-5 sm:px-8 md:px-gutter border-b border-rule-default bg-bg">
         <Container className="flex items-center justify-between">
           <span className="w-[50%] text-xl lg:text-2xl font-body text-text">Santiago Palma</span>
           <div className="flex w-[50%] items-center justify-end">
@@ -204,7 +217,7 @@ export default function Nav() {
             </motion.button>
           </div>
         </Container>
-      </nav>
+      </motion.nav>
       {target && createPortal(<AnimatePresence>
         {isOpen && (
           <motion.div
