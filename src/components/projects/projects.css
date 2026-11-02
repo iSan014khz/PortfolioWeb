@@ -52,6 +52,8 @@
   color: var(--color-text);
   transition: color var(--duration-fast) ease, border-color var(--duration-fast) ease;
 }
+/* Scroll reveal owns inline visibility; the portal owns the trigger while open. */
+.project-case-trigger[data-modal-origin-hidden] { visibility: hidden !important; }
 .project-case-trigger:focus-visible { outline-offset: 4px; }
 @media (hover: hover) and (pointer: fine) {
   .project-case-trigger:hover { color: var(--color-link); border-color: var(--color-link); }

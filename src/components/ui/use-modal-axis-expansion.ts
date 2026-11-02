@@ -33,10 +33,9 @@ export function useModalAxisExpansion(
   // only once the returning circle and glyph have reached their original place.
   useLayoutEffect(() => {
     const trigger = origin?.trigger
-    if (!trigger || reduced) return
-    const visibility = trigger.style.visibility
-    trigger.style.visibility = 'hidden'
-    return () => { trigger.style.visibility = visibility }
+    if (!trigger) return
+    trigger.setAttribute('data-modal-origin-hidden', '')
+    return () => { trigger.removeAttribute('data-modal-origin-hidden') }
   }, [origin, reduced])
 
   useLayoutEffect(() => {
