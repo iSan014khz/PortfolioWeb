@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils"
 export interface SvgTextZoomProps {
   /** Conserva la entrada original; editorial revela dos grupos sin dispersar las letras. */
   entryStyle?: "original" | "editorial" | "convergence"
+  /** Contornos normalizados para evitar rasterizar glifos durante el zoom en Safari. */
+  glyphOutlines?: Record<string, string>
   /** Texto a renderizar en el SVG */
   text: string
   /** Clases CSS para el contenedor exterior */
@@ -292,6 +294,7 @@ function getCharIndex(
 }
 
 interface MeasuredChar {
+  outline?: { d: string; transform: string }
   char: string
   index: number
   x: number
@@ -317,8 +320,11 @@ function ConvergenceChar({ item, progress, reduced, className }: {
     return `translate(${dx + item.x * (1 - scale)} ${dy + item.y * (1 - scale)}) scale(${scale})`;
   });
   const opacity = useTransform(entry, [0, 0.6, 1], [0, 1, 1]);
-  return <motion.g transform={transform} opacity={opacity}><text x={item.x} y={item.y} textAnchor="start" dominantBaseline="central"
-    className={className}>{item.char}</text></motion.g>;
+  return <motion.g transform={transform} opacity={opacity}>
+    {item.outline
+      ? <path d={item.outline.d} transform={item.outline.transform} className={className} />
+      : <text x={item.x} y={item.y} textAnchor="start" dominantBaseline="central" className={className}>{item.char}</text>}
+  </motion.g>;
 }
 
 /**
@@ -327,6 +333,7 @@ function ConvergenceChar({ item, progress, reduced, className }: {
  */
 export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
   entryStyle = "original",
+  glyphOutlines,
   text,
   className,
   svgClassName,
@@ -428,7 +435,27 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
           const measured: MeasuredChar[] = []
           for (let i = 0; i < chars.length; i++) {
             const extent = extentOf(i)
+            let outline: MeasuredChar['outline'];
+            const d = glyphOutlines?.[chars[i]];
+            if (d) {
+              // Measure the original glyph once, then paint only its vector outline.
+              // This preserves the font's placement without live text tiles during zoom.
+              const probe = el.cloneNode(false) as SVGTextElement;
+              probe.textContent = chars[i];
+              probe.setAttribute('x', String(extent ? extent.x : defaultTextX));
+              probe.setAttribute('y', String(defaultTextY));
+              probe.setAttribute('text-anchor', 'start');
+              el.parentNode?.appendChild(probe);
+              try {
+                const box = probe.getBBox();
+                if (box.width > 0 && box.height > 0) outline = {
+                  d,
+                  transform: `translate(${box.x} ${box.y}) scale(${box.width} ${box.height})`,
+                };
+              } finally { probe.remove(); }
+            }
             measured.push({
+              outline,
               char: chars[i],
               index: i,
               // El borde izquierdo de la celda del glifo ya incorpora el kerning del par
@@ -453,7 +480,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
     document.fonts?.ready.then(updateCoordsAndChars)
     window.addEventListener("resize", updateCoordsAndChars)
     return () => window.removeEventListener("resize", updateCoordsAndChars)
-  }, [text, charFocus, charOccurrence, offsetX, offsetY, align, enableParallax, entryStyle, defaultTextX, defaultTextY])
+  }, [text, charFocus, charOccurrence, offsetX, offsetY, align, enableParallax, entryStyle, glyphOutlines, defaultTextX, defaultTextY])
 
   // 1. Progreso normalizado y suavizado del recorrido de zoom
   const [zoomStart, zoomEnd] = zoomScrollRange

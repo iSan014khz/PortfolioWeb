@@ -169,7 +169,11 @@ export default function Nav() {
         ref={navRef}
         initial={false}
         animate={{ transform: hidden && !isOpen ? 'translateY(-100%)' : 'translateY(0%)' }}
-        transition={reduced ? { duration: 0 } : { type: 'spring', duration: 0.5, bounce: 0 }}
+        transition={reduced ? { duration: 0 } : {
+          type: 'tween',
+          duration: hidden && !isOpen ? 0.22 : 0.28,
+          ease: [0.23, 1, 0.32, 1],
+        }}
         onFocusCapture={event => {
           if (event.target.matches(':focus-visible')) setHidden(false);
         }}
