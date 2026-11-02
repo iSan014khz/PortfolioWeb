@@ -32,10 +32,10 @@ export default function Footer() {
               mail
             </span>
             <a
-              href="mailto:sp6670280@gmail.com"
+              href="mailto:santiago.pmdev@gmail.com"
               className="text-lg sm:text-2xl md:text-3xl lg:text-4xl text-bg underline underline-offset-8 decoration-1 hover:text-accent hover:decoration-accent transition-colors duration-200"
             >
-              sp6670280@gmail.com
+              santiago.pmdev@gmail.com
             </a>
           </div>
 
