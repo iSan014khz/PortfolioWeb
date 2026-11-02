@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useLenis } from 'lenis/react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence, useReducedMotion, type Variants } from 'motion/react';
+import { motion, AnimatePresence, cubicBezier, useReducedMotion, type Variants } from 'motion/react';
 import { Container } from '@/components/Section';
 import { useModal } from '@/components/ui/modal';
 import './nav.css';
@@ -11,6 +11,9 @@ const links = [
   { href: '#why-me', label: 'Acerca de' },
   { href: '#footer', label: 'Contacto' },
 ];
+
+// Match the reference curve, with a gradual finish at the destination.
+const NAV_SCROLL_EASE = cubicBezier(0.1, 0.7, 0.5, 1);
 
 const menuLinks = [links[0], { href: '#skills', label: 'Habilidades' }, ...links.slice(1)];
 
@@ -103,17 +106,24 @@ export default function Nav() {
   useEffect(() => {
     if (!destination || isOpen || menuPresent) return;
     const frame = window.requestAnimationFrame(() => {
-      const section = document.querySelector<HTMLElement>(destination);
+      const section = destination === '#top' ? document.documentElement : document.querySelector<HTMLElement>(destination);
       if (section) {
         // The footer is sticky: its bounding box is not the end of the document.
-        let top = destination === '#footer'
+        let top = destination === '#top' ? 0 : destination === '#footer'
           ? Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
           : window.scrollY + section.getBoundingClientRect().top;
         if (destination === '#why-me') {
           top += Math.max(0, section.offsetHeight - window.innerHeight) * 0.94;
         }
         window.history.pushState(null, '', destination);
-        if (lenis) lenis.scrollTo(top, { immediate: reduced, force: true });
+        const distance = Math.abs(top - window.scrollY);
+        const duration = Math.min(2, 1 + Math.sqrt(distance / Math.max(1, window.innerHeight)) * 0.12);
+        if (lenis) lenis.scrollTo(top, {
+          immediate: reduced,
+          force: true,
+          duration,
+          easing: NAV_SCROLL_EASE,
+        });
         else window.scrollTo({ top, behavior: reduced ? 'instant' : 'smooth' });
       }
       setDestination(null);
@@ -137,6 +147,7 @@ export default function Nav() {
   return (
     <>
       <motion.nav
+        id="top"
         ref={navRef}
         initial={false}
         animate={{ transform: hidden && !isOpen ? 'translateY(-100%)' : 'translateY(0%)' }}
@@ -150,7 +161,7 @@ export default function Nav() {
         }}
         data-hidden={hidden && !isOpen} aria-label="Navegación principal" className="site-nav sticky top-0 shrink-0 z-40 flex h-nav-height w-full items-center px-5 sm:px-8 md:px-gutter border-b border-rule-default bg-bg">
         <Container className="flex items-center justify-between">
-          <span className="w-[50%] text-xl lg:text-2xl font-body text-text">Santiago Palma</span>
+          <a href="#top" onClick={event => navigate(event, '#top')} aria-label="Santiago Palma, volver al inicio" className="w-[50%] text-xl lg:text-2xl font-body text-text">Santiago Palma</a>
           <div className="flex w-[50%] items-center justify-end">
             {/* Desde lg hay sitio de sobra para los enlaces en la barra. Comparten fuente, tamano
                 y el mismo hover a `accent` que el overlay, para que se lean como el mismo sistema
