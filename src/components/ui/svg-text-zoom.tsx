@@ -4,15 +4,16 @@ import {
   type MotionValue,
   type Variants,
   useTransform,
+  useMotionValue,
   useReducedMotion,
 } from "motion/react"
 import { cn } from "@/lib/utils"
 
 export interface SvgTextZoomProps {
+  /** Paint the zoom inside a stable viewport, avoiding Safari overflow trails. */
+  boundedViewport?: boolean
   /** Conserva la entrada original; editorial revela dos grupos sin dispersar las letras. */
   entryStyle?: "original" | "editorial" | "convergence"
-  /** Contornos normalizados para evitar rasterizar glifos durante el zoom en Safari. */
-  glyphOutlines?: Record<string, string>
   /** Texto a renderizar en el SVG */
   text: string
   /** Clases CSS para el contenedor exterior */
@@ -294,7 +295,6 @@ function getCharIndex(
 }
 
 interface MeasuredChar {
-  outline?: { d: string; transform: string }
   char: string
   index: number
   x: number
@@ -320,11 +320,8 @@ function ConvergenceChar({ item, progress, reduced, className }: {
     return `translate(${dx + item.x * (1 - scale)} ${dy + item.y * (1 - scale)}) scale(${scale})`;
   });
   const opacity = useTransform(entry, [0, 0.6, 1], [0, 1, 1]);
-  return <motion.g transform={transform} opacity={opacity}>
-    {item.outline
-      ? <path d={item.outline.d} transform={item.outline.transform} className={className} />
-      : <text x={item.x} y={item.y} textAnchor="start" dominantBaseline="central" className={className}>{item.char}</text>}
-  </motion.g>;
+  return <motion.g transform={transform} opacity={opacity}><text x={item.x} y={item.y} textAnchor="start" dominantBaseline="central"
+    className={className}>{item.char}</text></motion.g>;
 }
 
 /**
@@ -333,7 +330,7 @@ function ConvergenceChar({ item, progress, reduced, className }: {
  */
 export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
   entryStyle = "original",
-  glyphOutlines,
+  boundedViewport = false,
   text,
   className,
   svgClassName,
@@ -370,6 +367,25 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
   // Coordenadas base del SVG (1000 de ancho x 200 de alto)
   const svgBaseWidth = 1000
   const svgBaseHeight = 200
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const viewportWidthRatio = useMotionValue(1)
+  const viewportHeightRatio = useMotionValue(svgBaseHeight / svgBaseWidth)
+
+  useLayoutEffect(() => {
+    const host = viewportRef.current
+    if (!boundedViewport || !host) return
+    const measure = () => {
+      const box = host.getBoundingClientRect()
+      if (!box.width) return
+      viewportWidthRatio.set(window.innerWidth / box.width)
+      viewportHeightRatio.set(box.height / box.width)
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(host)
+    window.addEventListener('resize', measure)
+    return () => { observer.disconnect(); window.removeEventListener('resize', measure) }
+  }, [boundedViewport, viewportWidthRatio, viewportHeightRatio])
 
   // Configuración de anclaje según alineación
   const textAnchor = align === "left" ? "start" : align === "right" ? "end" : "middle"
@@ -435,27 +451,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
           const measured: MeasuredChar[] = []
           for (let i = 0; i < chars.length; i++) {
             const extent = extentOf(i)
-            let outline: MeasuredChar['outline'];
-            const d = glyphOutlines?.[chars[i]];
-            if (d) {
-              // Measure the original glyph once, then paint only its vector outline.
-              // This preserves the font's placement without live text tiles during zoom.
-              const probe = el.cloneNode(false) as SVGTextElement;
-              probe.textContent = chars[i];
-              probe.setAttribute('x', String(extent ? extent.x : defaultTextX));
-              probe.setAttribute('y', String(defaultTextY));
-              probe.setAttribute('text-anchor', 'start');
-              el.parentNode?.appendChild(probe);
-              try {
-                const box = probe.getBBox();
-                if (box.width > 0 && box.height > 0) outline = {
-                  d,
-                  transform: `translate(${box.x} ${box.y}) scale(${box.width} ${box.height})`,
-                };
-              } finally { probe.remove(); }
-            }
             measured.push({
-              outline,
               char: chars[i],
               index: i,
               // El borde izquierdo de la celda del glifo ya incorpora el kerning del par
@@ -480,7 +476,7 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
     document.fonts?.ready.then(updateCoordsAndChars)
     window.addEventListener("resize", updateCoordsAndChars)
     return () => window.removeEventListener("resize", updateCoordsAndChars)
-  }, [text, charFocus, charOccurrence, offsetX, offsetY, align, enableParallax, entryStyle, glyphOutlines, defaultTextX, defaultTextY])
+  }, [text, charFocus, charOccurrence, offsetX, offsetY, align, enableParallax, entryStyle, defaultTextX, defaultTextY])
 
   // 1. Progreso normalizado y suavizado del recorrido de zoom
   const [zoomStart, zoomEnd] = zoomScrollRange
@@ -521,8 +517,18 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
   )
 
   const viewBox = useTransform(
-    [minX, minY, currentWidth, currentHeight],
-    ([x, y, w, h]) => `${x} ${y} ${w} ${h}`
+    [minX, minY, currentWidth, currentHeight, viewportWidthRatio, viewportHeightRatio],
+    ([x, y, w, h, widthRatio, heightRatio]) => {
+      if (!boundedViewport) return `${x} ${y} ${w} ${h}`
+      // Expand the viewing window, not the lettering: the center and pixel scale
+      // match the original overflowing SVG exactly, at every scroll position.
+      const width = shouldReduceMotion ? svgBaseWidth : Number(w)
+      const centerX = shouldReduceMotion ? svgBaseWidth / 2 : Number(x) + Number(w) / 2
+      const centerY = shouldReduceMotion ? svgBaseHeight / 2 : Number(y) + Number(h) / 2
+      const paintedWidth = width * Number(widthRatio)
+      const paintedHeight = width * Number(heightRatio)
+      return `${centerX - paintedWidth / 2} ${centerY - paintedHeight / 2} ${paintedWidth} ${paintedHeight}`
+    }
   )
 
   // 3. Animación de opacidad y visibilidad del SVG
@@ -584,15 +590,25 @@ export const SvgTextZoom: React.FC<SvgTextZoomProps> = ({
   // dos utilidades del mismo tipo compitiendo, y cual gana depende del orden en que Tailwind
   // las emita, no del orden en que se escriben.
   return (
-    <motion.div style={{ filter: shouldReduceMotion ? "none" : exitBlurFilter }} className={cn("relative z-20 flex w-full pointer-events-none isolate", className)}>
+    <motion.div ref={viewportRef} style={{ filter: shouldReduceMotion ? "none" : exitBlurFilter }} className={cn("relative z-20 flex w-full pointer-events-none isolate", className)}>
       <motion.svg
-        viewBox={shouldReduceMotion ? staticViewBox : viewBox}
+        viewBox={shouldReduceMotion && !boundedViewport ? staticViewBox : viewBox}
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label={text}
         style={{
           opacity: textOpacity,
           visibility: svgDisplay,
+          ...(boundedViewport ? {
+            position: 'absolute' as const,
+            top: 0,
+            left: '50%',
+            width: '100vw',
+            height: '100%',
+            overflow: 'hidden',
+            transform: 'translateX(-50%) translateZ(0)',
+            backfaceVisibility: 'hidden' as const,
+          } : {}),
         }}
         shapeRendering="geometricPrecision"
         textRendering="geometricPrecision"

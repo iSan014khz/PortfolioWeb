@@ -3,7 +3,6 @@ import { useRef, useMemo } from 'react';
 import { interpolate } from 'flubber';
 import yoImg from '@/assets/yo.jpg';
 import SvgTextZoom from '@/components/ui/svg-text-zoom';
-import titleOutlines from '@/assets/lettering/why-me-outlines.json';
 import ScrollScrambleIn from '@/components/ui/scroll-scramble-in';
 
 // Las dos entradas anteriores se conservan para poder volver a ellas.
@@ -142,7 +141,7 @@ export default function WhyMe() {
                 {/* Capa de SvgTextZoom para 'Porqué yo?' con super-zoom que atraviesa la letra 'o' */}
                 <div aria-hidden="true" className="absolute inset-0 flex items-center justify-center pointer-events-none px-5 sm:px-8 md:px-gutter z-20">
                     <SvgTextZoom
-                        glyphOutlines={titleOutlines}
+                        boundedViewport
                         {...TITLE_PRESETS[TITLE_ANIMATION]}
                         progress={smoothProgress}
                         fadeScrollRange={[0.30, 0.4]}
@@ -152,7 +151,7 @@ export default function WhyMe() {
                         charFocus="o"
                         charOccurrence="last"
                         textClassName="font-contrast fill-text text-[95px] tracking-editorial select-none"
-                        className="w-full max-w-page"
+                        className="w-full h-full max-w-page"
                         align="center"
                     />
                 </div>
